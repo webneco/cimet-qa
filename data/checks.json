@@ -1,0 +1,202 @@
+{
+  "retailer": "Retailer 1",
+  "checklist_id": "R1-ENERGY-SALES-QA",
+  "checklist_version": "R1-2026.09",
+  "effective_from": "2026-09-01",
+  "confidence_floor_critical": 0.6,
+  "type_legend": {
+    "A": "Script span match. Deterministic. The required wording must appear in the transcript. No LLM is used, so Type A has no hallucination surface.",
+    "B": "Extract the SPOKEN value from the transcript (LLM), then compare it to the CRM/plan reference with deterministic code. The LLM is never shown the reference value.",
+    "C": "Observation only. Recorded as a note for coaching. blocks_sale is always false and can never be made true, including by override."
+  },
+  "checks": [
+    {
+      "check_id": "recording_disclaimer",
+      "name": "Recording disclaimer given and consented",
+      "section": "1. Opening",
+      "type": "A",
+      "critical": true,
+      "weight": 20,
+      "check_version": "1.3.0",
+      "effective_from": "2026-07-01",
+      "regulatory_basis": "Surveillance Devices Act / Retailer 1 call-recording policy",
+      "script_or_rule": {
+        "kind": "script_span",
+        "description": "Agent must disclose the call is recorded, state the purpose, and seek consent before proceeding.",
+        "required_phrases": [
+          "this call is being recorded",
+          "quality assurance and training purposes",
+          "do I have your consent"
+        ],
+        "pass_threshold": 0.85,
+        "unsure_threshold": 0.55,
+        "window_turns": 3
+      }
+    },
+    {
+      "check_id": "account_holder",
+      "name": "Account holder identity and authority confirmed",
+      "section": "1. Opening",
+      "type": "A",
+      "critical": true,
+      "weight": 15,
+      "check_version": "1.2.0",
+      "effective_from": "2026-07-01",
+      "regulatory_basis": "NECF Rule 47 - explicit informed consent must come from an authorised person",
+      "script_or_rule": {
+        "kind": "script_span",
+        "description": "Agent must confirm they are speaking with the named account holder and that the person is authorised to make changes.",
+        "required_phrases": [
+          "speaking with the account holder",
+          "authorised to make changes to this account"
+        ],
+        "pass_threshold": 0.85,
+        "unsure_threshold": 0.55,
+        "window_turns": 3
+      }
+    },
+    {
+      "check_id": "dmo_verbatim",
+      "name": "DMO / reference price statement read verbatim",
+      "section": "2. Disclosure",
+      "type": "A",
+      "critical": true,
+      "weight": 20,
+      "check_version": "2.0.0",
+      "effective_from": "2026-07-01",
+      "regulatory_basis": "AER Retail Pricing Information Guidelines - Default Market Offer comparison",
+      "script_or_rule": {
+        "kind": "script_span",
+        "description": "The AER reference price statement must be read substantially verbatim. Paraphrasing the estimate disclaimer is a fail.",
+        "required_phrases": [
+          "Default Market Offer",
+          "reference price",
+          "Australian Energy Regulator",
+          "this is an estimate only",
+          "your actual cost will depend on your usage"
+        ],
+        "pass_threshold": 0.85,
+        "unsure_threshold": 0.55,
+        "window_turns": 3
+      }
+    },
+    {
+      "check_id": "rates_and_charges",
+      "name": "Peak usage rate stated matches the sold plan",
+      "section": "3. Rates and charges",
+      "type": "B",
+      "critical": true,
+      "weight": 20,
+      "check_version": "1.4.0",
+      "effective_from": "2026-09-01",
+      "regulatory_basis": "NECF Rule 46 - price disclosure before consent",
+      "script_or_rule": {
+        "kind": "extract_and_compare",
+        "field": "spoken_peak_rate_cents",
+        "description": "The agent must state the peak usage rate in cents per kilowatt hour. The spoken figure must match the plan actually being sold.",
+        "extraction_target": "The peak electricity usage rate, in cents per kilowatt hour, that the AGENT stated to the customer on this call.",
+        "reference": { "source": "plan", "path": "peak_rate_cents", "label": "Plan peak rate" },
+        "comparator": "numeric_cents",
+        "tolerance": 0.05,
+        "unit": "c/kWh"
+      }
+    },
+    {
+      "check_id": "email_captured",
+      "name": "Customer email captured correctly",
+      "section": "3. Rates and charges",
+      "type": "B",
+      "critical": true,
+      "weight": 15,
+      "check_version": "1.1.0",
+      "effective_from": "2026-07-01",
+      "regulatory_basis": "NECF Rule 60 - welcome pack and cooling-off notice must reach the customer",
+      "script_or_rule": {
+        "kind": "extract_and_compare",
+        "field": "spoken_customer_email",
+        "description": "The email the CUSTOMER gave on the call must match the email recorded in the CRM. A keying error here means the contract never reaches the customer.",
+        "extraction_target": "The customer's own email address as spoken on the call. Spoken forms such as \"j dot smith at gmail dot com\" must be assembled into a normal address.",
+        "reference": { "source": "crm", "path": "email", "label": "CRM email" },
+        "comparator": "email_exact",
+        "tolerance": 0,
+        "unit": "email"
+      }
+    },
+    {
+      "check_id": "nmi",
+      "name": "NMI read back and confirmed",
+      "section": "4. Site details",
+      "type": "B",
+      "critical": false,
+      "weight": 5,
+      "check_version": "1.0.0",
+      "effective_from": "2026-07-01",
+      "regulatory_basis": "Retailer 1 transfer-accuracy standard (non-blocking)",
+      "script_or_rule": {
+        "kind": "extract_and_compare",
+        "field": "spoken_nmi",
+        "description": "Non-blocking extra. Agent should read back the National Meter Identifier and have it confirmed.",
+        "extraction_target": "The NMI (National Meter Identifier) digits spoken on the call, usually 10 or 11 digits read out one at a time.",
+        "reference": { "source": "crm", "path": "nmi", "label": "CRM NMI" },
+        "comparator": "digits_exact",
+        "tolerance": 0,
+        "unit": "digits"
+      }
+    },
+    {
+      "check_id": "fuel_type",
+      "name": "Fuel type confirmed",
+      "section": "4. Site details",
+      "type": "B",
+      "critical": false,
+      "weight": 5,
+      "check_version": "1.0.0",
+      "effective_from": "2026-07-01",
+      "regulatory_basis": "Retailer 1 transfer-accuracy standard (non-blocking)",
+      "script_or_rule": {
+        "kind": "extract_and_compare",
+        "field": "spoken_fuel_type",
+        "description": "Non-blocking extra. Confirm whether the sale is electricity, gas, or dual fuel.",
+        "extraction_target": "The fuel type being signed up on this call: electricity, gas, or dual fuel.",
+        "reference": { "source": "crm", "path": "fuel_type", "label": "CRM fuel type" },
+        "comparator": "enum_ci",
+        "tolerance": 0,
+        "unit": "enum"
+      }
+    },
+    {
+      "check_id": "dead_air",
+      "name": "Dead air on the call",
+      "section": "5. Call quality (coaching only)",
+      "type": "C",
+      "critical": false,
+      "weight": 0,
+      "check_version": "1.0.0",
+      "effective_from": "2026-07-01",
+      "regulatory_basis": "Coaching only - no regulatory basis, never blocks a sale",
+      "script_or_rule": {
+        "kind": "signal_note",
+        "metric": "max_silence_gap_sec",
+        "threshold": 15,
+        "description": "Note any silence longer than 15 seconds so a team leader can coach hold etiquette. Silence is never treated as evidence of non-compliance."
+      }
+    },
+    {
+      "check_id": "interruptions",
+      "name": "Talk-over and interruptions",
+      "section": "5. Call quality (coaching only)",
+      "type": "C",
+      "critical": false,
+      "weight": 0,
+      "check_version": "1.0.0",
+      "effective_from": "2026-07-01",
+      "regulatory_basis": "Coaching only - no regulatory basis, never blocks a sale",
+      "script_or_rule": {
+        "kind": "signal_note",
+        "metric": "overlap_count",
+        "threshold": 3,
+        "description": "Count turns that begin before the previous speaker finished. High counts usually mean poor audio separation, not a compliance breach."
+      }
+    }
+  ]
+}

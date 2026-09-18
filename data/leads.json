@@ -1,0 +1,76 @@
+{
+  "source": "CRM export (read-only snapshot)",
+  "exported_at": "2026-09-18T08:05:00+10:00",
+  "note": "CRM fields are READ-ONLY in this app. QA never edits them. Type B checks compare the SPOKEN value from the transcript against these fields; the LLM is never shown them.",
+  "leads": [
+    {
+      "lead_id": "3613790",
+      "retailer": "Retailer 1",
+      "plan_id": "R1-SAVER-FLEX",
+      "channel": "outbound_call",
+      "agent_id": "AG-1182",
+      "agent_name": "Daniel R.",
+      "call_id": "CALL-3613790-01",
+      "recorded_at": "2026-09-17T14:07:22+10:00",
+      "audio_quality": "clean",
+      "transcript_path": "data/transcripts/3613790.json",
+      "crm": {
+        "account_holder_name": "Janet Smith",
+        "email": "j.smith@gmial.com",
+        "phone": "0412 884 210",
+        "nmi": "61020345678",
+        "fuel_type": "electricity",
+        "site_address": "12 Ruskin Street, Elwood VIC 3184",
+        "concession_card": false,
+        "life_support": false
+      },
+      "demo_note": "Worked example from the brief: rate quoted 28.6 vs plan 31.9 at 14:02, email mismatch at 22:10, dead air at 18:30. Expected gate: HELD."
+    },
+    {
+      "lead_id": "3613791",
+      "retailer": "Retailer 1",
+      "plan_id": "R1-SECURE-12",
+      "channel": "inbound_call",
+      "agent_id": "AG-1207",
+      "agent_name": "Priya K.",
+      "call_id": "CALL-3613791-01",
+      "recorded_at": "2026-09-17T10:31:06+10:00",
+      "audio_quality": "clean",
+      "transcript_path": "data/transcripts/3613791.json",
+      "crm": {
+        "account_holder_name": "David Nguyen",
+        "email": "d.nguyen@outlook.com",
+        "phone": "0431 552 907",
+        "nmi": "61030998877",
+        "fuel_type": "electricity",
+        "site_address": "8/44 Barkly Street, Carlton VIC 3053",
+        "concession_card": false,
+        "life_support": false
+      },
+      "demo_note": "Clean compliant call. Expected gate: SUBMITTED (subject to 5% sample audit)."
+    },
+    {
+      "lead_id": "3613792",
+      "retailer": "Retailer 1",
+      "plan_id": "R1-SAVER-FLEX",
+      "channel": "outbound_call",
+      "agent_id": "AG-1182",
+      "agent_name": "Daniel R.",
+      "call_id": "CALL-3613792-01",
+      "recorded_at": "2026-09-17T16:48:11+10:00",
+      "audio_quality": "degraded",
+      "transcript_path": "data/transcripts/3613792.json",
+      "crm": {
+        "account_holder_name": "Mario Rossi",
+        "email": "m.rossi@bigpond.com",
+        "phone": "0403 771 265",
+        "nmi": "61041122334",
+        "fuel_type": "electricity",
+        "site_address": "231 Sydney Road, Brunswick VIC 3056",
+        "concession_card": true,
+        "life_support": false
+      },
+      "demo_note": "Poor audio, heavy crosstalk. Silence is NOT evidence of non-compliance. Expected gate: QA (critical unsure), never HELD and never SUBMITTED."
+    }
+  ]
+}

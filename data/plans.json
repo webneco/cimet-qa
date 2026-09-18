@@ -1,0 +1,39 @@
+{
+  "source": "Retailer 1 plan catalogue export",
+  "catalogue_version": "R1-PLANS-2026.09.01",
+  "effective_from": "2026-09-01",
+  "currency": "AUD",
+  "note": "Rates are GST inclusive. This file is the reference-of-truth for Type B rate comparison. The LLM never sees these values.",
+  "plans": [
+    {
+      "plan_id": "R1-SAVER-FLEX",
+      "retailer": "Retailer 1",
+      "plan_name": "Retailer 1 Saver Flex",
+      "fuel_type": "electricity",
+      "tariff_type": "single_rate",
+      "peak_rate_cents": 31.9,
+      "daily_supply_cents": 98.45,
+      "solar_fit_cents": 4.5,
+      "dmo_delta_pct": -4.0,
+      "distribution_zone": "Ausgrid",
+      "contract_term_months": 0,
+      "exit_fee_dollars": 0,
+      "effective_from": "2026-09-01"
+    },
+    {
+      "plan_id": "R1-SECURE-12",
+      "retailer": "Retailer 1",
+      "plan_name": "Retailer 1 Secure 12",
+      "fuel_type": "electricity",
+      "tariff_type": "single_rate",
+      "peak_rate_cents": 29.7,
+      "daily_supply_cents": 104.9,
+      "solar_fit_cents": 5.0,
+      "dmo_delta_pct": -7.0,
+      "distribution_zone": "CitiPower",
+      "contract_term_months": 12,
+      "exit_fee_dollars": 0,
+      "effective_from": "2026-09-01"
+    }
+  ]
+}

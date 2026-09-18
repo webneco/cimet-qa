@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CIMET QA Gate</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#9678;</text></svg>">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="mark" aria-hidden="true"></span>
+    <div>
+      <h1>CIMET QA Gate</h1>
+      <p id="brandSub">pre-submit quality gate for Energy sales</p>
+    </div>
+  </div>
+
+  <div class="leadpicker" id="leadPicker" role="tablist" aria-label="Leads"></div>
+
+  <div class="topmeta">
+    <span class="badge" id="extractorBadge" title="Which engine scored Type B checks">engine</span>
+    <button class="btn ghost" id="rerunBtn" title="Re-ingest the transcript and score it again">Re-run</button>
+  </div>
+</header>
+
+<section class="gateband" id="gateBand">
+  <div class="chipwrap">
+    <div class="statuschip" id="statusChip"><span id="statusText">LOADING</span></div>
+    <div class="chipsub" id="chipSub"></div>
+  </div>
+
+  <div class="gatedetail">
+    <div class="reasons" id="gateReasons"></div>
+    <div class="counters" id="gateCounters"></div>
+  </div>
+
+  <div class="gateside">
+    <div class="trace" id="pipelineTrace"></div>
+    <a class="btn ghost small" id="exportBtn" href="#" download>Download audit JSON</a>
+  </div>
+</section>
+
+<main class="grid">
+  <!-- ------------------------------------------------------------- checks -->
+  <section class="panel checks">
+    <div class="panelhead">
+      <h2>Checklist</h2>
+      <span class="panelmeta" id="checklistMeta"></span>
+    </div>
+    <div class="tablehead">
+      <span class="c-status">Status</span>
+      <span class="c-name">Check</span>
+      <span class="c-conf">Confidence</span>
+      <span class="c-at">At</span>
+      <span class="c-block">Blocks</span>
+    </div>
+    <div id="checkList" class="checkrows"></div>
+    <p class="legend" id="typeLegend"></p>
+  </section>
+
+  <!-- --------------------------------------------------------- transcript -->
+  <section class="panel transcript">
+    <div class="panelhead">
+      <h2>Transcript</h2>
+      <span class="panelmeta" id="transcriptMeta"></span>
+    </div>
+    <div class="redactbar" id="redactBar"></div>
+    <div id="turnList" class="turns"></div>
+  </section>
+
+  <!-- ---------------------------------------------------------- crm + log -->
+  <section class="panel side">
+    <div class="panelhead">
+      <h2>CRM record</h2>
+      <span class="lockpill" title="This app never writes to the CRM">read-only</span>
+    </div>
+    <dl class="crm" id="crmList"></dl>
+
+    <div class="panelhead second">
+      <h2>Plan sold</h2>
+      <span class="panelmeta" id="planMeta"></span>
+    </div>
+    <dl class="crm" id="planList"></dl>
+
+    <div class="panelhead second">
+      <h2>Override log</h2>
+      <span class="panelmeta" id="overrideMeta">0 entries</span>
+    </div>
+    <div id="overrideLog" class="overridelog"></div>
+  </section>
+</main>
+
+<!-- ----------------------------------------------------------- override modal -->
+<div class="modalwrap" id="overrideModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="ovTitle">
+    <h3 id="ovTitle">Override check</h3>
+    <p class="ovcheck" id="ovCheckName"></p>
+    <p class="ovmachine" id="ovMachine"></p>
+
+    <label class="fieldlabel">Set status to</label>
+    <div class="toggle" id="ovToggle">
+      <button type="button" data-status="pass">PASS</button>
+      <button type="button" data-status="fail">FAIL</button>
+    </div>
+
+    <label class="fieldlabel" for="ovActor">Reviewer</label>
+    <input id="ovActor" type="text" placeholder="e.g. TL Sam Okafor" autocomplete="off">
+
+    <label class="fieldlabel" for="ovReason">Reason <span class="req">required</span></label>
+    <textarea id="ovReason" rows="4" placeholder="What did you hear, and what are you relying on? This is written to the append-only override log."></textarea>
+    <p class="hint" id="ovHint">At least 10 characters. The machine verdict is kept alongside your decision.</p>
+
+    <p class="ovnote">Overrides change the gate only. The CRM record is never written to.</p>
+    <div class="modalactions">
+      <button class="btn ghost" id="ovCancel">Cancel</button>
+      <button class="btn primary" id="ovSubmit">Save override</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

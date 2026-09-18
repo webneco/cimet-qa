@@ -1,0 +1,8 @@
+# Optional. The app runs end to end without this, using the deterministic
+# Type B extractor. Install it to score Type B checks with Claude:
+#
+#   pip install -r requirements.txt
+#
+# run.py also installs it automatically on first run if ANTHROPIC_API_KEY is
+# set (disable with CIMET_AUTO_INSTALL=0).
+anthropic
