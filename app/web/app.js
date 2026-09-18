@@ -264,7 +264,15 @@ function renderEvidence(r) {
 function selectCheck(checkId, keepOpen = false) {
   state.selected = (state.selected === checkId && !keepOpen) ? null : checkId;
   renderChecks();
+  revealSelectedRow();
   highlightTurn();
+}
+
+function revealSelectedRow() {
+  if (!state.selected) return;
+  const box = $("checkList");
+  const row = box.querySelector(`.checkrow[data-check="${state.selected}"]`);
+  if (row) box.scrollTo({ top: Math.max(0, row.offsetTop - 6), behavior: "smooth" });
 }
 
 function highlightTurn() {
@@ -286,8 +294,8 @@ function renderTranscript() {
   $("transcriptMeta").textContent =
     `${t.turn_count} turns - ${mmss(t.duration_sec)} - ${t.audio_quality} audio - ${t.asr_engine}`;
   $("redactBar").innerHTML = t.redactions_applied
-    ? `${t.redactions_applied} sequence(s) masked at ingest - ${esc(t.redaction_rule)}`
-    : `no masking needed - rule active: ${esc(t.redaction_rule)}`;
+    ? `${t.redactions_applied} sequence(s) masked at ingest - rule: ${esc(t.redaction_rule)}`
+    : `nothing to mask on this call - rule: ${esc(t.redaction_rule)}`;
 
   const gaps = new Map();
   const deadAir = run.results.find((r) => r.check_id === "dead_air");
@@ -320,7 +328,7 @@ function renderSide() {
   const crm = run.crm_snapshot;
   $("crmList").innerHTML = Object.entries(crm)
     .filter(([k]) => !k.startsWith("_"))
-    .map(([k, v]) => `<dt>${esc(k)}</dt><dd class="${flagged.has(k) ? "flagged" : ""}">${esc(
+    .map(([k, v]) => `<dt>${esc(k.replace(/_/g, " "))}</dt><dd class="${flagged.has(k) ? "flagged" : ""}">${esc(
       typeof v === "boolean" ? (v ? "yes" : "no") : v)}</dd>`).join("");
 
   const plan = run.plan_snapshot;

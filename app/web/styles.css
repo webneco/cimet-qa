@@ -101,7 +101,7 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
   display: grid;
   grid-template-columns: minmax(240px, 300px) 1fr minmax(220px, 280px);
   gap: 22px; align-items: center;
-  padding: 18px 20px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--line);
   background:
     radial-gradient(900px 180px at 8% 0%, var(--band-glow, rgba(86,162,255,.12)), transparent 70%),
@@ -172,7 +172,7 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 .panel {
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   display: flex; flex-direction: column; min-width: 0;
-  max-height: calc(100vh - 210px);
+  max-height: calc(100vh - 178px);
 }
 
 .panelhead {
@@ -202,7 +202,7 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 }
 .tablehead .c-conf, .tablehead .c-at, .tablehead .c-block { text-align: right; }
 
-.checkrows { overflow-y: auto; }
+.checkrows { overflow-y: auto; position: relative; }
 
 .sectionhead {
   padding: 9px 14px 4px; font-size: 10.5px; color: var(--dim);
@@ -283,10 +283,13 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 
 .evactions { display: flex; gap: 8px; align-items: center; }
 
-.legend {
-  margin: 0; padding: 10px 14px; border-top: 1px solid var(--line-soft);
-  font-size: 11px; color: var(--dim); line-height: 1.6;
+.legend { border-top: 1px solid var(--line-soft); font-size: 11px; color: var(--dim); }
+.legend summary {
+  padding: 8px 14px; cursor: pointer; font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: .05em; color: var(--dim); list-style-position: inside;
 }
+.legend summary:hover { color: var(--muted); }
+.legend > div { padding: 0 14px 12px; line-height: 1.6; }
 .legend b { color: var(--muted); font-family: var(--mono); font-size: 10.5px; }
 
 /* -------------------------------------------------------------- transcript */
@@ -335,8 +338,8 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 
 /* -------------------------------------------------------------------- side */
 
-.crm { margin: 0; padding: 10px 14px; display: grid; grid-template-columns: 96px 1fr; gap: 4px 10px; }
-.crm dt { font-family: var(--mono); font-size: 10.5px; color: var(--dim); }
+.crm { margin: 0; padding: 10px 14px; display: grid; grid-template-columns: minmax(0,104px) 1fr; gap: 5px 10px; }
+.crm dt { font-family: var(--mono); font-size: 10.5px; color: var(--dim); overflow-wrap: anywhere; line-height: 1.35; }
 .crm dd { margin: 0; font-size: 12px; color: var(--muted); word-break: break-word; }
 .crm dd.flagged { color: var(--red); }
 
@@ -358,6 +361,8 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
   display: flex; align-items: center; justify-content: center; z-index: 60; padding: 20px;
   backdrop-filter: blur(2px);
 }
+/* An author `display` declaration beats the UA rule for [hidden], so restate it. */
+.modalwrap[hidden], .toast[hidden] { display: none; }
 .modal {
   width: min(520px, 100%); background: var(--panel);
   border: 1px solid var(--line); border-radius: 12px; padding: 20px;

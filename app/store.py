@@ -137,7 +137,7 @@ class Store:
             "duration_sec": float(doc.get("duration_sec") or (turns[-1]["end_sec"] if turns else 0)),
             "turn_count": len(turns),
             "redactions_applied": redactions,
-            "redaction_rule": f">= {redact_digit_run} consecutive digits masked at ingest",
+            "redaction_rule": f"runs of {redact_digit_run}+ digits",
             "ingested_at": utcnow(),
             "turns": turns,
         }
