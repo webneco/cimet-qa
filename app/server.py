@@ -120,7 +120,10 @@ class _Preloader:
 
     def _work(self) -> None:
         try:
-            self.run_id = self.pipeline.run_lead(self.lead_id)["run_id"]
+            # A saved result is shown as-is; scoring (and any LLM cost) only happens
+            # when there is none yet, or when someone presses Re-run.
+            saved = self.pipeline.store.latest_run_for(self.lead_id)
+            self.run_id = saved["run_id"] if saved else self.pipeline.run_lead(self.lead_id)["run_id"]
         except Exception as exc:  # pragma: no cover - surfaced to the UI
             self.error = f"{type(exc).__name__}: {exc}"
             traceback.print_exc()

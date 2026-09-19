@@ -175,7 +175,11 @@ function renderVerdict() {
     sub = "Cleared to submit to the CRM.";
   }
   $("verdictTitle").textContent = title;
-  $("chipSub").innerHTML = esc(sub) + (gate.sample_audit ? '<span class="sample">Sampled for human audit</span>' : "");
+  const scoredAt = new Date(run.completed_at);
+  const when = isNaN(scoredAt) ? "" : scoredAt.toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  $("chipSub").innerHTML = esc(sub)
+    + (gate.sample_audit ? '<span class="sample">Sampled for human audit</span>' : "")
+    + (when ? `<span class="scored" title="Opening a lead shows its saved result. Re-run scores it again.">Scored ${esc(when)} · ${esc(run.extractors?.type_b_active || "")}</span>` : "");
 
   const passed = scored.filter((r) => r.status === "pass").length;
   const fails = scored.filter((r) => r.status === "fail").length;
@@ -817,15 +821,26 @@ function showLoading(label, detail) {
   $("chipSub").textContent = "";
 }
 
-async function loadLead(leadId) {
+/* Opening a lead shows its latest saved result - no scoring, no LLM cost. Scoring
+   happens only when a lead has never been scored, or when Re-run is pressed. */
+async function loadLead(leadId, rescore = false) {
   if (state.busy) return;
   state.leadId = leadId;
   state.selected = null;
   state.open = { passed: false, notes: false };
   renderLeads();
   setBusy(true);
-  showLoading("INGEST", `Attaching the transcript for ${leadId}…`);
   try {
+    if (!rescore) {
+      const { run } = await api(`/api/leads/${leadId}/latest`);
+      if (run) {
+        state.run = run;
+        render();
+        resetView();
+        return;
+      }
+    }
+    showLoading("INGEST", `Attaching the transcript for ${leadId}…`);
     const ingest = await api("/api/ingest", { lead_id: leadId });
     showLoading("SCORING", `Scoring ${plural(ingest.turn_count, "turn")} against the checklist…`);
     state.run = await api("/api/score", { ingest_id: ingest.ingest_id });
@@ -898,6 +913,11 @@ async function showRun(runId) {
 /* ------------------------------------------------------------------- eval */
 
 function openEval() {
+  // Running the evaluation re-scores all 12 labelled calls; with Claude on, that is
+  // roughly four API calls per call. Say so on the button rather than surprise anyone.
+  const llm = state.boot.extractors.llm_available;
+  $("evRun").textContent = llm ? "Run evaluation (~48 Claude calls)" : "Run evaluation";
+  $("evRun").title = llm ? "Re-scores all 12 labelled calls with Claude. The last saved report is shown for free." : "";
   $("evalModal").hidden = false;
   loadEval(false);
 }
@@ -990,7 +1010,7 @@ async function boot() {
   setInterval(pollJobs, 3000);
 }
 
-$("rerunBtn").onclick = () => loadLead(state.leadId);
+$("rerunBtn").onclick = () => loadLead(state.leadId, true);
 $("leadBtn").onclick = () => ($("leadMenu").hidden ? openLeadMenu() : closeLeadMenu(true));
 // Close the lead list on any press outside it. pointerdown in the capture phase fires
 // before any element can stop it, and also for scrollbars and the audio controls,

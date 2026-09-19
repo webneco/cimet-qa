@@ -148,6 +148,10 @@ served by the Python server - no build step, no framework.
   engine status (speech-to-text provider and Type B extractor, each with a green or
   amber dot), **Accuracy** and **Re-run**, and a badge while the dialler is sending a
   recording.
+- **Saved vs fresh.** Opening a lead shows its latest saved result, marked "Scored <time>
+  · <extractor>" - no scoring, so no API cost. **Re-run** scores it again (with Claude,
+  if a key is set). **Accuracy -> Run evaluation** re-scores all 12 labelled calls,
+  about 48 Claude calls with a key; the button says so.
 - **Verdict.** HELD / QA / SUBMITTED with a plain-English summary - which critical
   checks failed or need a human, and where the call was routed - plus Passed, Failed,
   Unsure and weighted score.
