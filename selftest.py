@@ -13,10 +13,16 @@ from __future__ import annotations
 
 import copy
 import json
+import shutil
+import tempfile
+from pathlib import Path
 from types import SimpleNamespace
 
-from app import gate, llm
-from app.config import load_settings
+from app import asr, gate, llm
+from app import store as store_mod
+from app.compare import compare
+from app.config import ROOT, load_settings
+from app.evaluate import evaluate
 from app.pipeline import Pipeline, PipelineError
 from app.scoring import score_type_b
 from app.store import Store
@@ -64,6 +70,19 @@ def by_id(run: dict, check_id: str) -> dict:
 
 
 def run_selftest(settings=None) -> int:
+    """Runs against a scratch copy of the recording and ASR folders, so it never reads
+    or deletes a real dialler recording, and a real one never changes what it scores."""
+    real_dirs = store_mod.AUDIO_DIR, store_mod.ASR_DIR
+    scratch = Path(tempfile.mkdtemp(prefix="cimet-selftest-"))
+    store_mod.AUDIO_DIR, store_mod.ASR_DIR = scratch / "audio", scratch / "transcripts"
+    try:
+        return _run_selftest(settings)
+    finally:
+        store_mod.AUDIO_DIR, store_mod.ASR_DIR = real_dirs
+        shutil.rmtree(scratch, ignore_errors=True)
+
+
+def _run_selftest(settings=None) -> int:
     settings = settings or load_settings()
     settings = copy.copy(settings)
     settings.llm_mode = "off"  # deterministic and free to run
@@ -301,6 +320,109 @@ def run_selftest(settings=None) -> int:
           f"{hallucinated['status']}: {'; '.join(hallucinated['guardrails'])[:90]}")
     check("the discarded value never reaches the comparison",
           hallucinated["evidence"]["comparison"] is None)
+
+    # ----------------------------------------- 11. numbers ASR spells out in words
+    spoken_card, n = redact_long_digits(
+        "It's four one one one double one one one one one one one one one one one, expiry oh eight")
+    check("a card number spoken as words is masked", n == 1 and "one one" not in spoken_card, spoken_card)
+    spoken_nmi, n = redact_long_digits("six one zero two zero three four five six seven eight")
+    check("an 11-digit NMI spoken as words survives", n == 0, spoken_nmi)
+
+    # ------------------------------------------- 11b. G7: a mishear is not a keying error
+    # Both cases below came out of real ElevenLabs Scribe runs on the synthetic calls.
+    homophone = compare("email_exact", "aisha.raman@gmail.com", "aisha.rahman@gmail.com")
+    check("G7: a name that sounds the same is a possible mishear, not a fail",
+          homophone["mishear_plausible"] is True, homophone["detail"])
+    misheard_domain = compare("email_exact", "mario.bianchi@bizpoint.com", "mario.bianchi@bigpond.com")
+    check("G7: an unknown spoken domain against a real CRM one is a possible mishear",
+          misheard_domain["mishear_plausible"] is True, misheard_domain["detail"])
+    keyed = compare("email_exact", "j.smith@gmail.com", "j.smith@gmial.com")
+    check("G7 does not excuse the brief's CRM typo: gmial is still a fail",
+          keyed["match"] is False and keyed["mishear_plausible"] is False, keyed["detail"])
+
+    # ----------------------------------------- 11c. 3613793: the official NBN artefact
+    nbn = pipeline.run_lead("3613793")
+    check("3613793 is scored against the NBN-QA pack",
+          nbn["checklist"]["pack_id"] == "NBN-QA" and nbn["checklist"]["check_count"] == 12,
+          str(nbn["checklist"]))
+    check("the energy leads still score against the Retailer 1 pack",
+          held["checklist"]["checklist_id"] == "R1-ENERGY-SALES-QA"
+          and clean["checklist"]["checklist_id"] == "R1-ENERGY-SALES-QA")
+    source = json.loads((ROOT / "data/transcripts/3613793.json").read_text(encoding="utf-8"))
+    check("every placeholder tag survives ingest verbatim",
+          [t["text"] for t in nbn["turns"]] == [t["text"] for t in source["turns"]])
+    check("3613793 is never SUBMITTED", nbn["gate"]["can_submit_to_crm"] is False, nbn["gate"]["display_status"])
+    check("disclaimer passes despite ASR run-together ('assuranceand')",
+          by_id(nbn, "recording_disclaimer_at_open")["status"] == "pass"
+          and any(p.get("matched_run_together") for p in by_id(nbn, "recording_disclaimer_at_open")["evidence"]["phrases"]))
+    check("card handling passes on the mute, with no PAN on the call",
+          by_id(nbn, "card_on_call")["status"] == "pass"
+          and by_id(nbn, "card_on_call")["evidence"]["mute_turn_idx"]
+          and not by_id(nbn, "card_on_call")["evidence"]["pan_turn_idx"])
+    for cid in ("tmc_disclosed", "development_fee_vs_screen"):
+        row = by_id(nbn, cid)
+        check(f"{cid}: screen vs spoken conflict is G8, decided by the floor",
+              any(g.startswith("G8") for g in row["guardrails"]) and row["status"] in {"fail", "unsure"}
+              and (row["status"] == "fail") == (row["confidence"] >= settings.confidence_floor_critical),
+              f"{row['status']} {row['confidence']}")
+    tmc = by_id(nbn, "tmc_disclosed")["evidence"]["extraction"]
+    check("the agent's TMC is kept apart from what the agent read off the screen",
+          tmc["value"] == "42.90" and any(m["kind"] == "screen reading" and m["value"] == "317.00"
+                                          for m in tmc["other_mentions"]), tmc["value"])
+    modem_ref = {"plan.modem_model": "Netcom CF40", "plan.modem_cost_cents": 0}
+    check("a modem described as 'CF40 Wi-Fi 6' is still a CF40 (seen from the LLM)",
+          compare("modem_model_cost", "Netcom CF40 Wi-Fi 6, $0", modem_ref)["match"] is True)
+    check("a different modem model is still a mismatch",
+          compare("modem_model_cost", "Netcom CF400, $0", modem_ref)["match"] is False)
+    check("contract term is unsure - no term on the lead is invented",
+          by_id(nbn, "contract_term")["status"] == "unsure", by_id(nbn, "contract_term")["status"])
+
+    # --------------------------------------------------- 12. dialler -> ASR -> gate
+    # ASR is stubbed so this runs offline; the webhook's HTTP layer is exercised by
+    # the same ingest_recording call the job worker makes.
+    lead_asr = "3613802"  # wrong rate, labelled HELD
+    ref = json.loads((ROOT / store.leads[lead_asr]["transcript_path"]).read_text(encoding="utf-8"))
+    diarised = [{"speaker": "spk_B" if t["speaker"] == "agent" else "spk_A", "start_sec": t["start_sec"],
+                 "end_sec": t["end_sec"], "text": t["text"], "asr_confidence": 0.92} for t in ref["turns"]]
+    diarised.insert(0, {"speaker": "spk_A", "start_sec": 0.0, "end_sec": 0.3, "text": "Hello?",
+                        "asr_confidence": 0.9})
+    diarised.append({"speaker": "spk_A", "start_sec": 999.0, "end_sec": 1003.0, "asr_confidence": 0.9,
+                     "text": "My card is 4111 1111 1111 1111 if you need it."})
+    real_transcribe = asr.transcribe
+
+    def _fake(_audio, _name, _ctype, _settings):
+        turns, mapping = asr.assign_roles(copy.deepcopy(diarised))
+        return {"turns": turns, "speaker_mapping": mapping, "asr_engine": "stub:selftest"}
+
+    asr.transcribe = _fake
+    try:
+        asr_run = pipeline.ingest_recording(lead_asr, b"RIFF-selftest", f"{lead_asr}.wav", "audio/wav")
+        stored = store.asr_transcript_path(lead_asr).read_text(encoding="utf-8")
+    finally:
+        asr.transcribe = real_transcribe
+    t = asr_run["transcript"]
+    check("a dialler recording is scored from its ASR transcript",
+          t["source"] == "dialler_recording_asr", t["source"])
+    check("the agent is identified by what they say, not who spoke first",
+          t["speaker_mapping"]["agent_speaker"] == "spk_B", str(t["speaker_mapping"]))
+    check("a card number in ASR output never reaches disk",
+          "4111" not in stored and t["redactions_applied"] >= 1, str(t["redactions_applied"]))
+    check("the recording's checksum is on the transcript", len(t["audio"]["sha256"]) == 64)
+    check("the ASR-scored wrong-rate call is HELD", asr_run["gate"]["status"] == gate.HELD,
+          asr_run["gate"]["display_status"])
+
+    # ----------------------------------------------- 13. accuracy on labelled calls
+    try:
+        report = evaluate(pipeline, "fixture")
+    except FileNotFoundError:
+        report = None
+    if report:
+        s = report["summary"]
+        check("labelled calls: no critical check false-passes", s["critical_false_pass"] == 0,
+              str(s["critical_false_pass"]))
+        check("labelled calls: no held sale is submitted", s["gate_false_submit"] == 0,
+              str(s["gate_false_submit"]))
+        check("labelled calls: no clean sale is held", s["gate_false_hold"] == 0, str(s["gate_false_hold"]))
 
     # ------------------------------------------------------------------ report
     width = max(len(label) for _, label, _ in _RESULTS) + 2

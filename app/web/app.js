@@ -11,7 +11,13 @@ const state = {
   selected: null,
   busy: false,
   pending: null, // check awaiting an override decision
+  stopAt: null,  // seconds - a clip played from evidence stops here
+  jobs: new Map(), // dialler job_id -> last seen status
+  jobsPrimed: false,
+  evalSource: "fixture",
 };
+
+const CLIP_SEC = 20; // "clicks the timestamp, hears twenty seconds"
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g,
   (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -26,13 +32,14 @@ const decorate = (text) => esc(text)
   .replace(/\[(inaudible|crosstalk|silence|unintelligible|indistinct)\]/gi, "<mark>[$1]</mark>")
   .replace(/\[REDACTED ([^\]]+)\]/g, '<span class="redacted">[REDACTED $1]</span>');
 
-function toast(message, bad = false) {
+function toast(message, bad = false, onClick = null) {
   const el = $("toast");
   el.textContent = message;
-  el.className = "toast" + (bad ? " bad" : "");
+  el.className = "toast" + (bad ? " bad" : "") + (onClick ? " link" : "");
+  el.onclick = onClick ? () => { el.hidden = true; onClick(); } : null;
   el.hidden = false;
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => { el.hidden = true; }, bad ? 6000 : 3200);
+  toast._t = setTimeout(() => { el.hidden = true; }, bad || onClick ? 8000 : 3200);
 }
 
 async function api(path, body) {
@@ -55,6 +62,8 @@ function renderLeads() {
       <span class="dot ${esc(lead.audio_quality)}"></span>
       ${esc(lead.lead_id)}
       <span style="color:var(--dim)">${esc(lead.account_holder.split(" ")[0])}</span>
+      ${lead.has_asr_transcript ? '<span class="src asr" title="scored from a dialler recording">ASR</span>'
+        : lead.synthetic ? '<span class="src" title="synthetic test call">SYN</span>' : ""}
     </button>`).join("");
 
   $("leadPicker").querySelectorAll(".leadchip").forEach((chip) => {
@@ -72,6 +81,14 @@ function renderEngine() {
   badge.title = engines.llm_available
     ? "Type B values are extracted by Claude, then compared to the CRM by deterministic code."
     : `LLM extraction is off - ${engines.llm_unavailable_reason}. Type B uses the built-in deterministic extractor instead.`;
+
+  const asr = state.boot.asr || {};
+  const asrBadge = $("asrBadge");
+  asrBadge.textContent = asr.provider ? `ASR: ${asr.provider}` : "ASR: off";
+  asrBadge.className = "badge " + (asr.provider ? "live" : "offline");
+  asrBadge.title = asr.provider
+    ? "Dialler recordings posted to /api/dialler/recording are transcribed with speaker separation and timestamps."
+    : `Dialler webhook is disabled - ${asr.unavailable_reason}. Reference transcripts still score.`;
 
   const c = state.boot.checklist;
   $("brandSub").textContent = `${state.boot.retailer} - checklist ${c.checklist_version}`;
@@ -104,7 +121,10 @@ function renderGate() {
       <span>${esc(r.detail)}</span>
     </div>`).join("");
   $("gateReasons").querySelectorAll("[data-jump]").forEach((el) => {
-    el.onclick = () => { if (el.dataset.check) selectCheck(el.dataset.check, true); };
+    el.onclick = () => {
+      if (el.dataset.check) selectCheck(el.dataset.check, true);
+      playAt(Number(el.dataset.jump), CLIP_SEC);
+    };
   });
 
   const k = gate.counters;
@@ -173,6 +193,30 @@ function renderChecks() {
   });
   const overrideBtn = $("checkList").querySelector("[data-override]");
   if (overrideBtn) overrideBtn.onclick = () => openOverride(overrideBtn.dataset.override);
+  const playBtn = $("checkList").querySelector("[data-play]");
+  if (playBtn) playBtn.onclick = () => playAt(Number(playBtn.dataset.play), CLIP_SEC);
+  $("checkList").querySelectorAll("[data-seek-evidence]").forEach((el) => {
+    el.onclick = () => {
+      const sec = Number(el.dataset.seekEvidence);
+      const turn = state.run.turns.find((t) => t.start_sec === sec);
+      if (turn) {
+        document.querySelectorAll(".turn.hit").forEach((t) => t.classList.remove("hit"));
+        const node = document.querySelector(`.turn[data-idx="${turn.idx}"]`);
+        if (node) { node.classList.add("hit"); node.scrollIntoView({ block: "center", behavior: "smooth" }); }
+      }
+      playAt(sec, CLIP_SEC);
+    };
+  });
+}
+
+function fmtValue(v, key = "") {
+  if (v === null || v === undefined) return "not supplied";
+  if (typeof v === "boolean") return v ? "yes" : "no";
+  if (typeof v === "number" && /_cents$/.test(key)) return `$${(v / 100).toFixed(2)}`;
+  if (typeof v === "object") {
+    return Object.entries(v).map(([k, x]) => `${k.replace(/^plan\./, "")} = ${fmtValue(x, k)}`).join("; ");
+  }
+  return String(v);
 }
 
 function kv(rows) {
@@ -205,11 +249,21 @@ function renderEvidence(r) {
       ${esc(r.override.machine_status)} at ${r.override.machine_confidence.toFixed(2)} confidence</span></div>`;
   }
 
-  if (r.type === "A") {
+  if (r.type === "A" && e.method === "card_handling") {
+    body += kv([
+      ["method", "deterministic rule, no LLM"],
+      ["card number on call", e.pan_turn_idx.length ? `<span class="bad">yes - turn ${e.pan_turn_idx.join(", ")}</span>` : '<span class="good">none</span>'],
+      ["recording muted", e.mute_turn_idx.length ? `<span class="good">turn ${e.mute_turn_idx.join(", ")}</span>` : "not mentioned"],
+      ["payment discussed", e.payment_turn_idx.length ? `turn ${e.payment_turn_idx.join(", ")}` : "no"],
+      ["rule", esc(e.rule)],
+      ["check version", `${esc(r.check_version)} (from ${esc(r.effective_from)})`],
+      ["basis", esc(r.regulatory_basis || "-")],
+    ]);
+  } else if (r.type === "A") {
     body += `<div class="phraselist">${(e.phrases || []).map((p) => `
       <div class="phrase ${p.found ? "ok" : "no"}">
         <span class="mk">${p.found ? "OK" : "--"}</span>
-        <span class="txt">"${esc(p.phrase)}"</span>
+        <span class="txt">"${esc(p.phrase)}"${p.alternatives ? ` <span class="alt">or ${p.alternatives.filter((a) => a !== p.phrase).map((a) => `"${esc(a)}"`).join(", ")}</span>` : ""}${p.matched_run_together ? ' <span class="alt">(run-together in transcript)</span>' : ""}</span>
         <span class="pct">${Math.round(p.ratio * 100)}%</span>
       </div>`).join("")}</div>`;
     body += kv([
@@ -217,6 +271,7 @@ function renderEvidence(r) {
       ["coverage", `<b>${Math.round(e.coverage * 100)}%</b> (pass at ${Math.round(e.pass_threshold * 100)}%, unsure at ${Math.round(e.unsure_threshold * 100)}%)`],
       (e.audio_markers_in_span || []).length ? ["audio markers", `<span class="bad">${esc(e.audio_markers_in_span.join(", "))}</span>`] : null,
       ["asr confidence", `min ${e.min_asr_confidence} / mean ${e.mean_asr_confidence}`],
+      e.agent_turn_ordinal ? ["at the open", `agent turn ${e.agent_turn_ordinal} (must be within the first ${e.max_agent_turn})`] : null,
       ["check version", `${esc(r.check_version)} (from ${esc(r.effective_from)})`],
       ["basis", esc(r.regulatory_basis || "-")],
     ]);
@@ -227,10 +282,13 @@ function renderEvidence(r) {
       ["spoken value", x.found
         ? `<b>${esc(x.value)}</b> <span style="color:var(--dim)">(extraction confidence ${x.confidence})</span>`
         : `<span class="bad">not established</span> - ${esc(x.reason || "")}`],
-      ["reference", `${esc(e.reference.label)} = <b>${esc(e.reference.value)}</b>
+      ["reference", `${esc(e.reference.label)} = <b>${esc(fmtValue(e.reference.value, e.reference.path || ""))}</b>
         <span style="color:var(--dim)">from ${esc(e.reference.source)}</span>`],
+      (x.other_mentions || []).length ? ["other mentions", x.other_mentions.map((m) =>
+        `<span class="mention"><span class="rt" data-seek-evidence="${m.start_sec}">${esc(mmss(m.start_sec))}</span> ${esc(m.value)} <span style="color:var(--dim)">(${esc(m.kind)})</span></span>`).join("")] : null,
       c ? ["comparison", `${c.match === true ? '<span class="good">match</span>' : c.match === false ? '<span class="bad">mismatch</span>' : "not comparable"} - ${esc(c.detail)}`] : null,
-      ["extractor", `${esc(e.extractor)}${e.effort ? ` (effort ${esc(e.effort)})` : ""}`],
+      ["extractor", `${esc(e.extractor)}${e.effort ? ` (effort ${esc(e.effort)})` : ""}${e.degraded_from
+        ? ` <span class="bad" title="${esc(e.degrade_reason || "")}">- fell back from ${esc(e.degraded_from)}</span>` : ""}`],
       ["leak guard", `the extractor never saw ${esc(e.reference.label)} - ${esc(e.leak_guard)}`],
       ["grounding", e.grounding
         ? `quote ${e.grounding.quote_grounded_in_transcript ? "found in" : "<span class='bad'>not found in</span>"} the transcript (${Math.round((e.grounding.match_ratio || 0) * 100)}% match)`
@@ -252,7 +310,9 @@ function renderEvidence(r) {
   }
 
   const canOverride = r.type !== "C";
+  const canPlay = state.run.audio_url && r.start_sec !== null && r.start_sec !== undefined && r.start_sec >= 0;
   body += `<div class="evactions">
+    ${canPlay ? `<button class="btn small" data-play="${r.start_sec}">&#9654; Play ${CLIP_SEC}s from ${esc(r.timestamp)}</button>` : ""}
     ${canOverride
       ? `<button class="btn small" data-override="${esc(r.check_id)}">Override to ${r.status === "pass" ? "FAIL" : "PASS"}</button>`
       : '<span class="hint">Type C notes are coaching signal only and cannot be overridden into a blocking state.</span>'}
@@ -291,8 +351,12 @@ function highlightTurn() {
 function renderTranscript() {
   const run = state.run;
   const t = run.transcript;
+  const fromAudio = t.source === "dialler_recording_asr";
   $("transcriptMeta").textContent =
-    `${t.turn_count} turns - ${mmss(t.duration_sec)} - ${t.audio_quality} audio - ${t.asr_engine}`;
+    `${t.turn_count} turns - ${mmss(t.duration_sec)} - ${fromAudio ? "from dialler recording" : t.audio_quality + " audio"} - ${t.asr_engine}`;
+  $("transcriptMeta").title = fromAudio && t.speaker_mapping
+    ? `agent = ${t.speaker_mapping.agent_speaker} by ${t.speaker_mapping.method} (margin ${t.speaker_mapping.margin}); audio sha256 ${t.audio?.sha256 || "-"}`
+    : `source: ${t.source} (${t.transcript_path})`;
   $("redactBar").innerHTML = t.redactions_applied
     ? `${t.redactions_applied} sequence(s) masked at ingest - rule: ${esc(t.redaction_rule)}`
     : `nothing to mask on this call - rule: ${esc(t.redaction_rule)}`;
@@ -305,7 +369,7 @@ function renderTranscript() {
     const gap = gaps.get(turn.idx);
     return `
       <div class="turn ${esc(turn.speaker)} ${turn.asr_confidence < 0.7 ? "lowasr" : ""}" data-idx="${turn.idx}">
-        <span class="ts">${mmss(turn.start_sec)}</span>
+        <span class="ts ${run.audio_url ? "play" : ""}" ${run.audio_url ? `data-seek="${turn.start_sec}" title="play from here"` : ""}>${mmss(turn.start_sec)}</span>
         <span>
           <span class="who">${esc(turn.speaker_name || turn.speaker)}${turn.asr_confidence < 0.7
             ? ` - asr ${turn.asr_confidence.toFixed(2)}` : ""}</span>
@@ -315,6 +379,64 @@ function renderTranscript() {
         ? `<div class="gapmark">${gap.duration_sec}s of dead air - ${esc(gap.timestamp)} - coaching note only</div>`
         : "");
   }).join("");
+  $("turnList").querySelectorAll("[data-seek]").forEach((el) => {
+    el.onclick = () => playAt(Number(el.dataset.seek), null);
+  });
+}
+
+/* ------------------------------------------------------------------- audio */
+
+function setupPlayer() {
+  const run = state.run;
+  const player = $("player");
+  const src = run.audio_url ? `${run.audio_url}?v=${encodeURIComponent(run.run_id)}` : "";
+  $("playerBar").hidden = !src;
+  if (!src) {
+    player.pause();
+    player.removeAttribute("src");
+    player.dataset.src = "";
+    return;
+  }
+  if (player.dataset.src !== src) {
+    player.dataset.src = src;
+    player.src = src;
+  }
+  const a = run.transcript.audio;
+  $("playerMeta").textContent = a ? `${a.filename} - sha256 ${a.sha256.slice(0, 10)}...` : "synthetic recording";
+}
+
+function playAt(sec, clip) {
+  const player = $("player");
+  if (!state.run?.audio_url || Number.isNaN(sec)) return;
+  const start = Math.max(0, sec - 1);
+  state.stopAt = clip ? start + clip : null;
+  const go = () => { player.currentTime = start; player.play().catch(() => {}); };
+  if (player.readyState >= 1) { go(); return; }
+  player.addEventListener("loadedmetadata", go, { once: true });
+  // Clicked before the recording arrived, or the first fetch was abandoned: ask again.
+  if (player.networkState !== HTMLMediaElement.NETWORK_LOADING) player.load();
+}
+
+function followPlayback() {
+  const player = $("player");
+  const t = player.currentTime;
+  if (state.stopAt !== null && t >= state.stopAt) {
+    player.pause();
+    state.stopAt = null;
+  }
+  if (!state.run) return;
+  let current = null;
+  for (const turn of state.run.turns) {
+    if (turn.start_sec <= t + 0.05) current = turn; else break;
+  }
+  const prev = document.querySelector(".turn.playing");
+  const next = current && !player.paused ? document.querySelector(`.turn[data-idx="${current.idx}"]`) : null;
+  if (prev === next) return;
+  if (prev) prev.classList.remove("playing");
+  if (next) {
+    next.classList.add("playing");
+    next.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
 }
 
 /* -------------------------------------------------------------- side panel */
@@ -333,14 +455,17 @@ function renderSide() {
 
   const plan = run.plan_snapshot;
   $("planMeta").textContent = plan.plan_id;
-  $("planList").innerHTML = [
+  const planRows = plan.peak_rate_cents !== undefined ? [
     ["plan", plan.plan_name],
     ["peak rate", `${plan.peak_rate_cents} c/kWh`],
     ["daily supply", `${plan.daily_supply_cents} c/day`],
     ["feed-in", `${plan.solar_fit_cents} c/kWh`],
     ["vs DMO", `${plan.dmo_delta_pct}%`],
     ["term", plan.contract_term_months ? `${plan.contract_term_months} months` : "no lock-in"],
-  ].map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
+  ] : Object.entries({ ...plan, ...(run.lead.commercials || {}) })
+    .filter(([k]) => !["plan_id", "retailer"].includes(k))
+    .map(([k, v]) => [k.replace(/_cents$/, "").replace(/_/g, " "), fmtValue(v, k)]);
+  $("planList").innerHTML = planRows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
 
   const log = run.override_log || [];
   $("overrideMeta").textContent = `${log.length} entr${log.length === 1 ? "y" : "ies"}`;
@@ -424,7 +549,16 @@ function setBusy(busy) {
   $("rerunBtn").disabled = busy;
 }
 
+function renderChecklistMeta() {
+  const c = state.run.checklist;
+  $("checklistMeta").textContent =
+    `${c.checklist_id} ${c.checklist_version} - ${state.run.results.length} checks - in force from ${c.effective_from}`;
+  $("brandSub").textContent = `${c.retailer} - checklist ${c.checklist_version}`;
+}
+
 function render() {
+  renderChecklistMeta();
+  setupPlayer();
   renderGate();
   renderChecks();
   renderTranscript();
@@ -457,6 +591,117 @@ async function loadLead(leadId) {
   }
 }
 
+/* ---------------------------------------------------------------- dialler */
+
+async function pollJobs() {
+  let jobs;
+  try { jobs = (await api("/api/jobs")).jobs; } catch { return; }
+  const active = jobs.filter((j) => !["done", "error"].includes(j.status));
+  const badge = $("diallerBadge");
+  badge.hidden = !active.length;
+  badge.className = "badge busy-dialler";
+  badge.textContent = active.length
+    ? `Dialler: ${active[0].lead_id} ${active[0].status}${active.length > 1 ? ` +${active.length - 1}` : ""}`
+    : "";
+
+  for (const job of jobs.slice().reverse()) {
+    const seen = state.jobs.get(job.job_id);
+    state.jobs.set(job.job_id, job.status);
+    // The first poll only learns what already happened; it announces nothing.
+    if (!state.jobsPrimed || seen === job.status) continue;
+    if (job.status === "done") {
+      const lead = state.boot.leads.find((l) => l.lead_id === job.lead_id);
+      if (lead) { lead.has_asr_transcript = true; lead.has_audio = true; renderLeads(); }
+      if (job.lead_id === state.leadId && !state.busy) {
+        await showRun(job.run_id);
+        toast(`Recording for ${job.lead_id} transcribed and scored: ${job.gate}`);
+      } else {
+        toast(`Recording for ${job.lead_id} scored: ${job.gate} - click to open`, false, () => showRun(job.run_id));
+      }
+    } else if (job.status === "error") {
+      toast(`Dialler recording for ${job.lead_id} failed: ${job.error}`, true);
+    }
+  }
+  state.jobsPrimed = true;
+}
+
+async function showRun(runId) {
+  state.run = await api(`/api/runs/${runId}`);
+  state.leadId = state.run.lead_id;
+  state.selected = null;
+  renderLeads();
+  render();
+}
+
+/* ------------------------------------------------------------------- eval */
+
+function openEval() {
+  $("evalModal").hidden = false;
+  loadEval(false);
+}
+
+async function loadEval(run) {
+  const source = state.evalSource;
+  $("evSource").querySelectorAll("button").forEach((b) =>
+    b.setAttribute("aria-pressed", String(b.dataset.source === source)));
+  $("evBody").innerHTML = `<p class="evnote">${run ? "Scoring every labelled call..." : "Loading..."}</p>`;
+  $("evRun").disabled = true;
+  try {
+    const report = run ? await api("/api/eval", { source }) : await api(`/api/eval?source=${source}`);
+    renderEval(report);
+  } catch (err) {
+    $("evBody").innerHTML = `<p class="evnote">${esc(err.message)}. ${source === "asr"
+      ? "Push recordings first with <code>python tools/dialler_sim.py --all</code>, then" : ""} press <b>Run evaluation</b>.</p>`;
+  } finally {
+    $("evRun").disabled = false;
+  }
+}
+
+function renderEval(r) {
+  const s = r.summary;
+  const stat = (label, value, tone = "") =>
+    `<div class="evstat ${tone}"><b>${esc(value)}</b><span>${esc(label)}</span></div>`;
+  const pct = (v) => (v === null || v === undefined ? "-" : `${v}%`);
+  $("evSub").textContent = `${s.calls} hand-labelled calls - ${r.transcript_source === "asr"
+    ? "transcripts produced by ASR from audio" : "reference transcripts"} - Type B: ${r.extractor} - ${r.generated_at}`;
+  let html = `<div class="evstats">
+    ${stat("critical false passes", s.critical_false_pass, s.critical_false_pass ? "bad" : "good")}
+    ${stat("sales wrongly submitted", s.gate_false_submit, s.gate_false_submit ? "bad" : "good")}
+    ${stat("sales wrongly held", s.gate_false_hold, s.gate_false_hold ? "bad" : "good")}
+    ${stat("agreement where the machine decided", pct(s.agreement_pct_decided))}
+    ${stat("Cohen's kappa vs labels", s.kappa ?? "-")}
+    ${stat("verdicts routed to a human", pct(s.abstain_pct))}
+  </div>
+  <p class="evnote">Unsure counts as neither agreement nor error: the system declined to guess and routed the call to QA.
+    Labels live in data/synth/truth.json and the scorer never reads them.</p>
+  <table class="evtable"><thead><tr><th>Check</th><th>Critical</th><th class="num">N</th><th class="num">Agree</th>
+    <th class="num">Unsure</th><th class="num">False pass</th><th class="num">False fail</th><th class="num">Agree %</th><th class="num">Kappa</th></tr></thead><tbody>
+    ${r.per_check.map((b) => `<tr><td>${esc(b.check_id)}</td><td>${b.critical ? "yes" : "-"}</td>
+      <td class="num">${b.n}</td><td class="num">${b.agree}</td><td class="num">${b.abstain}</td>
+      <td class="num ${b.false_pass ? "FALSE_PASS" : ""}">${b.false_pass}</td>
+      <td class="num ${b.false_fail ? "false_fail" : ""}">${b.false_fail}</td>
+      <td class="num">${pct(b.agreement_pct)}</td><td class="num">${b.kappa ?? "-"}</td></tr>`).join("")}
+  </tbody></table>
+  <table class="evtable"><thead><tr><th>Lead</th><th>Scenario</th><th>Label</th><th>Machine</th><th>Outcome</th></tr></thead><tbody>
+    ${r.gates.map((g) => `<tr class="clickable" data-lead="${esc(g.lead_id)}"><td>${esc(g.lead_id)}</td><td>${esc(g.title)}</td>
+      <td>${esc(g.label)}</td><td>${esc(g.machine)}</td><td class="${esc(g.outcome)}">${esc(g.outcome.replace("_", " "))}</td></tr>`).join("")}
+  </tbody></table>`;
+  if (r.disagreements.length) {
+    html += `<table class="evtable"><thead><tr><th>Lead</th><th>Check</th><th>Label</th><th>Machine</th><th class="num">Conf</th><th>At</th><th>Outcome</th></tr></thead><tbody>
+      ${r.disagreements.map((d) => `<tr class="clickable" data-lead="${esc(d.lead_id)}"><td>${esc(d.lead_id)}</td><td>${esc(d.check_id)}</td>
+        <td>${esc(d.label)}</td><td>${esc(d.machine)}</td><td class="num">${d.confidence.toFixed(2)}</td>
+        <td>${esc(d.timestamp)}</td><td class="${esc(d.outcome)}">${esc(d.outcome.replace("_", " "))}</td></tr>`).join("")}
+    </tbody></table>`;
+  }
+  if ((r.skipped_no_asr_transcript || []).length) {
+    html += `<p class="evnote">Not yet received from the dialler: ${r.skipped_no_asr_transcript.map(esc).join(", ")}</p>`;
+  }
+  $("evBody").innerHTML = html;
+  $("evBody").querySelectorAll("tr[data-lead]").forEach((row) => {
+    row.onclick = () => { $("evalModal").hidden = true; loadLead(row.dataset.lead); };
+  });
+}
+
 async function boot() {
   try {
     state.boot = await api("/api/bootstrap");
@@ -478,9 +723,22 @@ async function boot() {
     await loadLead(state.leadId);
   }
   for (const warning of state.boot.warnings || []) toast(warning, true);
+  pollJobs();
+  setInterval(pollJobs, 3000);
 }
 
 $("rerunBtn").onclick = () => loadLead(state.leadId);
+$("player").addEventListener("timeupdate", followPlayback);
+$("evalBtn").onclick = openEval;
+$("evClose").onclick = () => { $("evalModal").hidden = true; };
+$("evRun").onclick = () => loadEval(true);
+$("evSource").onclick = (e) => {
+  const btn = e.target.closest("button[data-source]");
+  if (!btn) return;
+  state.evalSource = btn.dataset.source;
+  loadEval(false);
+};
+$("evalModal").onclick = (e) => { if (e.target === $("evalModal")) $("evalModal").hidden = true; };
 $("ovCancel").onclick = () => { $("overrideModal").hidden = true; };
 $("ovSubmit").onclick = submitOverride;
 $("ovToggle").onclick = (e) => {
@@ -491,7 +749,7 @@ $("ovToggle").onclick = (e) => {
 };
 $("overrideModal").onclick = (e) => { if (e.target === $("overrideModal")) $("overrideModal").hidden = true; };
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") $("overrideModal").hidden = true;
+  if (e.key === "Escape") { $("overrideModal").hidden = true; $("evalModal").hidden = true; }
 });
 
 boot();

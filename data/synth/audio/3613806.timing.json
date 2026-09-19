@@ -1,0 +1,203 @@
+{
+  "lead_id": "3613806",
+  "engine": "windows",
+  "voices": {
+    "agent": "Microsoft David Desktop",
+    "customer": "Microsoft Hazel Desktop"
+  },
+  "model": "windows-sapi",
+  "snr_db": 24.0,
+  "sample_rate": 8000,
+  "note": "Ground-truth line timings in the rendered audio - use to measure ASR timestamp drift.",
+  "lines": [
+    {
+      "idx": 0,
+      "speaker": "agent",
+      "start_sec": 0.3,
+      "end_sec": 15.27,
+      "text": "Hi, you're speaking with Marcus from Retailer One. Before we go any further I need to let you know that this call is being recorded for quality assurance and training purposes. Do I have your consent to continue on a recorded line?"
+    },
+    {
+      "idx": 1,
+      "speaker": "customer",
+      "start_sec": 15.97,
+      "end_sec": 19.18,
+      "text": "Yeah, that's fine, go ahead."
+    },
+    {
+      "idx": 2,
+      "speaker": "agent",
+      "start_sec": 19.88,
+      "end_sec": 23.72,
+      "text": "Thanks. Who am I speaking with today?"
+    },
+    {
+      "idx": 3,
+      "speaker": "customer",
+      "start_sec": 24.42,
+      "end_sec": 30.73,
+      "text": "It's Mark, I'm Helen's husband. She asked me to sort the power out."
+    },
+    {
+      "idx": 4,
+      "speaker": "agent",
+      "start_sec": 31.43,
+      "end_sec": 34.9,
+      "text": "No problem Mark, let's get it done then."
+    },
+    {
+      "idx": 5,
+      "speaker": "agent",
+      "start_sec": 35.6,
+      "end_sec": 44.71,
+      "text": "Perfect, thanks Helen. And the supply address is 6 Wattle Grove, Box Hill, Victoria, three one two eight?"
+    },
+    {
+      "idx": 6,
+      "speaker": "customer",
+      "start_sec": 45.41,
+      "end_sec": 47.27,
+      "text": "That's the one."
+    },
+    {
+      "idx": 7,
+      "speaker": "agent",
+      "start_sec": 47.97,
+      "end_sec": 57.21,
+      "text": "Great. So this is about the Secure 12 plan. Before any numbers there's a short statement I'm required to read to you in full."
+    },
+    {
+      "idx": 8,
+      "speaker": "customer",
+      "start_sec": 57.91,
+      "end_sec": 59.65,
+      "text": "No worries."
+    },
+    {
+      "idx": 9,
+      "speaker": "agent",
+      "start_sec": 60.35,
+      "end_sec": 79.13,
+      "text": "The Default Market Offer is the reference price set by the Australian Energy Regulator. The estimated annual cost of this plan is seven per cent less than the reference price for an average household in your distribution zone. This is an estimate only, and your actual cost will depend on your usage."
+    },
+    {
+      "idx": 10,
+      "speaker": "customer",
+      "start_sec": 79.83,
+      "end_sec": 81.99,
+      "text": "Okay, got it."
+    },
+    {
+      "idx": 11,
+      "speaker": "agent",
+      "start_sec": 82.69,
+      "end_sec": 91.88,
+      "text": "A couple of quick questions first. Does anyone at the property rely on life support equipment, and do you hold a concession card?"
+    },
+    {
+      "idx": 12,
+      "speaker": "customer",
+      "start_sec": 92.58,
+      "end_sec": 94.32,
+      "text": "No to both."
+    },
+    {
+      "idx": 13,
+      "speaker": "agent",
+      "start_sec": 95.02,
+      "end_sec": 97.68,
+      "text": "Let me pull the pricing up for you."
+    },
+    {
+      "idx": 14,
+      "speaker": "agent",
+      "start_sec": 98.48,
+      "end_sec": 109.84,
+      "text": "On the Secure 12 plan your usage rate is 29.7 cents per kilowatt hour including GST, and the daily supply charge is one hundred and four point nine cents a day."
+    },
+    {
+      "idx": 15,
+      "speaker": "customer",
+      "start_sec": 110.54,
+      "end_sec": 113.05,
+      "text": "That sounds reasonable."
+    },
+    {
+      "idx": 16,
+      "speaker": "agent",
+      "start_sec": 113.75,
+      "end_sec": 122.87,
+      "text": "The rate isn't locked, we'd give you written notice before any change and you could leave then with no exit fee. Are you happy for me to go ahead?"
+    },
+    {
+      "idx": 17,
+      "speaker": "customer",
+      "start_sec": 123.57,
+      "end_sec": 126.06,
+      "text": "Yes, let's do it."
+    },
+    {
+      "idx": 18,
+      "speaker": "agent",
+      "start_sec": 126.76,
+      "end_sec": 133.38,
+      "text": "What's the best email for your welcome pack and contract? The cooling-off notice goes there too."
+    },
+    {
+      "idx": 19,
+      "speaker": "customer",
+      "start_sec": 134.08,
+      "end_sec": 137.75,
+      "text": "Use helen dot brooks at outlook dot com."
+    },
+    {
+      "idx": 20,
+      "speaker": "agent",
+      "start_sec": 138.45,
+      "end_sec": 140.62,
+      "text": "Lovely, got it."
+    },
+    {
+      "idx": 21,
+      "speaker": "agent",
+      "start_sec": 141.31,
+      "end_sec": 150.49,
+      "text": "And just to confirm the NMI off your bill, I've got 6 1 0 3 9 8 7 6 5 4 3. Does that match?"
+    },
+    {
+      "idx": 22,
+      "speaker": "customer",
+      "start_sec": 151.19,
+      "end_sec": 153.81,
+      "text": "Yes, that matches."
+    },
+    {
+      "idx": 23,
+      "speaker": "agent",
+      "start_sec": 154.5,
+      "end_sec": 159.19,
+      "text": "And this is electricity only, you're not bringing gas across?"
+    },
+    {
+      "idx": 24,
+      "speaker": "customer",
+      "start_sec": 159.89,
+      "end_sec": 162.09,
+      "text": "Electricity only."
+    },
+    {
+      "idx": 25,
+      "speaker": "agent",
+      "start_sec": 162.79,
+      "end_sec": 171.85,
+      "text": "That's everything. You'll get the welcome pack by email within one business day and your ten business day cooling-off period starts when it lands."
+    },
+    {
+      "idx": 26,
+      "speaker": "customer",
+      "start_sec": 172.55,
+      "end_sec": 175.21,
+      "text": "Thanks Marcus, bye."
+    }
+  ]
+}

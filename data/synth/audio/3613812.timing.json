@@ -1,0 +1,196 @@
+{
+  "lead_id": "3613812",
+  "engine": "windows",
+  "voices": {
+    "agent": "Microsoft David Desktop",
+    "customer": "Microsoft Hazel Desktop"
+  },
+  "model": "windows-sapi",
+  "snr_db": 24.0,
+  "sample_rate": 8000,
+  "note": "Ground-truth line timings in the rendered audio - use to measure ASR timestamp drift.",
+  "lines": [
+    {
+      "idx": 0,
+      "speaker": "agent",
+      "start_sec": 0.3,
+      "end_sec": 15.27,
+      "text": "Hi, you're speaking with Marcus from Retailer One. Before we go any further I need to let you know that this call is being recorded for quality assurance and training purposes. Do I have your consent to continue on a recorded line?"
+    },
+    {
+      "idx": 1,
+      "speaker": "customer",
+      "start_sec": 15.97,
+      "end_sec": 19.18,
+      "text": "Yeah, that's fine, go ahead."
+    },
+    {
+      "idx": 2,
+      "speaker": "agent",
+      "start_sec": 19.88,
+      "end_sec": 28.79,
+      "text": "Thank you. Can I just confirm I'm speaking with the account holder, Ravi Menon, and that you're authorised to make changes to this account?"
+    },
+    {
+      "idx": 3,
+      "speaker": "customer",
+      "start_sec": 29.49,
+      "end_sec": 35.19,
+      "text": "Yes, that's me. Ravi Menon, the account's in my name."
+    },
+    {
+      "idx": 4,
+      "speaker": "agent",
+      "start_sec": 35.89,
+      "end_sec": 45.58,
+      "text": "Perfect, thanks Ravi. And the supply address is 77 Glenferrie Road, Hawthorn, Victoria, three one two two?"
+    },
+    {
+      "idx": 5,
+      "speaker": "customer",
+      "start_sec": 46.28,
+      "end_sec": 48.14,
+      "text": "That's the one."
+    },
+    {
+      "idx": 6,
+      "speaker": "agent",
+      "start_sec": 48.84,
+      "end_sec": 58.06,
+      "text": "Great. So this is about the Saver Flex plan. Before any numbers there's a short statement I'm required to read to you in full."
+    },
+    {
+      "idx": 7,
+      "speaker": "customer",
+      "start_sec": 58.76,
+      "end_sec": 60.5,
+      "text": "No worries."
+    },
+    {
+      "idx": 8,
+      "speaker": "agent",
+      "start_sec": 61.2,
+      "end_sec": 79.91,
+      "text": "The Default Market Offer is the reference price set by the Australian Energy Regulator. The estimated annual cost of this plan is four per cent less than the reference price for an average household in your distribution zone. This is an estimate only, and your actual cost will depend on your usage."
+    },
+    {
+      "idx": 9,
+      "speaker": "customer",
+      "start_sec": 80.61,
+      "end_sec": 82.77,
+      "text": "Okay, got it."
+    },
+    {
+      "idx": 10,
+      "speaker": "agent",
+      "start_sec": 83.47,
+      "end_sec": 92.65,
+      "text": "A couple of quick questions first. Does anyone at the property rely on life support equipment, and do you hold a concession card?"
+    },
+    {
+      "idx": 11,
+      "speaker": "customer",
+      "start_sec": 93.35,
+      "end_sec": 95.09,
+      "text": "No to both."
+    },
+    {
+      "idx": 12,
+      "speaker": "agent",
+      "start_sec": 95.79,
+      "end_sec": 98.46,
+      "text": "Let me pull the pricing up for you."
+    },
+    {
+      "idx": 13,
+      "speaker": "agent",
+      "start_sec": 99.26,
+      "end_sec": 110.18,
+      "text": "On the Saver Flex plan your usage rate is twenty-nine point one cents per kilowatt hour including GST, and the daily supply charge is ninety-eight point four five cents a day."
+    },
+    {
+      "idx": 14,
+      "speaker": "customer",
+      "start_sec": 110.88,
+      "end_sec": 113.4,
+      "text": "That sounds reasonable."
+    },
+    {
+      "idx": 15,
+      "speaker": "agent",
+      "start_sec": 114.1,
+      "end_sec": 123.22,
+      "text": "The rate isn't locked, we'd give you written notice before any change and you could leave then with no exit fee. Are you happy for me to go ahead?"
+    },
+    {
+      "idx": 16,
+      "speaker": "customer",
+      "start_sec": 123.92,
+      "end_sec": 126.4,
+      "text": "Yes, let's do it."
+    },
+    {
+      "idx": 17,
+      "speaker": "agent",
+      "start_sec": 127.1,
+      "end_sec": 133.73,
+      "text": "What's the best email for your welcome pack and contract? The cooling-off notice goes there too."
+    },
+    {
+      "idx": 18,
+      "speaker": "customer",
+      "start_sec": 134.43,
+      "end_sec": 137.93,
+      "text": "It's ravi dot menon at gmail dot com."
+    },
+    {
+      "idx": 19,
+      "speaker": "agent",
+      "start_sec": 138.63,
+      "end_sec": 140.79,
+      "text": "Lovely, got it."
+    },
+    {
+      "idx": 20,
+      "speaker": "agent",
+      "start_sec": 141.49,
+      "end_sec": 150.57,
+      "text": "And just to confirm the NMI off your bill, I've got 6 1 0 2 9 9 0 0 1 1 2. Does that match?"
+    },
+    {
+      "idx": 21,
+      "speaker": "customer",
+      "start_sec": 151.27,
+      "end_sec": 153.89,
+      "text": "Yes, that matches."
+    },
+    {
+      "idx": 22,
+      "speaker": "agent",
+      "start_sec": 154.59,
+      "end_sec": 159.28,
+      "text": "And this is electricity only, you're not bringing gas across?"
+    },
+    {
+      "idx": 23,
+      "speaker": "customer",
+      "start_sec": 159.98,
+      "end_sec": 162.18,
+      "text": "Electricity only."
+    },
+    {
+      "idx": 24,
+      "speaker": "agent",
+      "start_sec": 162.88,
+      "end_sec": 171.93,
+      "text": "That's everything. You'll get the welcome pack by email within one business day and your ten business day cooling-off period starts when it lands."
+    },
+    {
+      "idx": 25,
+      "speaker": "customer",
+      "start_sec": 172.63,
+      "end_sec": 175.29,
+      "text": "Thanks Marcus, bye."
+    }
+  ]
+}

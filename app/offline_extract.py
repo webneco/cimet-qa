@@ -218,8 +218,10 @@ class OfflineExtractor:
     unavailable_reason = None
 
     def extract(self, check: dict, turns: list[dict], secrets: list[str]) -> dict:
+        from .offline_nbn import FIELDS as nbn_fields  # NBN-QA pack; imported here to avoid a cycle
+
         field = check["script_or_rule"]["field"]
-        handler = _FIELDS.get(field)
+        handler = _FIELDS.get(field) or nbn_fields.get(field)
         if handler is None:
             return _abstain(f"no deterministic extractor implemented for field {field!r}")
         return handler(turns)

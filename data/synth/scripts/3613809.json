@@ -1,0 +1,218 @@
+{
+  "lead_id": "3613809",
+  "title": "NMI read-back mismatch (non-blocking)",
+  "voices": {
+    "agent": "Marcus Lee",
+    "customer": "Oliver Grant"
+  },
+  "lines": [
+    {
+      "speaker": "agent",
+      "text": "Hi, you're speaking with Marcus from Retailer One. Before we go any further I need to let you know that this call is being recorded for quality assurance and training purposes. Do I have your consent to continue on a recorded line?",
+      "pause": 0.3,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "Yeah, that's fine, go ahead.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "Thank you. Can I just confirm I'm speaking with the account holder, Oliver Grant, and that you're authorised to make changes to this account?",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "Yes, that's me. Oliver Grant, the account's in my name.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "Perfect, thanks Oliver. And the supply address is 8 Park Lane, Brighton, Victoria, three one eight six?",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "That's the one.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "Great. So this is about the Saver Flex plan. Before any numbers there's a short statement I'm required to read to you in full.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "No worries.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "The Default Market Offer is the reference price set by the Australian Energy Regulator. The estimated annual cost of this plan is four per cent less than the reference price for an average household in your distribution zone. This is an estimate only, and your actual cost will depend on your usage.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "Okay, got it.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "A couple of quick questions first. Does anyone at the property rely on life support equipment, and do you hold a concession card?",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "No to both.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "Let me pull the pricing up for you.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "On the Saver Flex plan your usage rate is 31.9 cents per kilowatt hour including GST, and the daily supply charge is ninety-eight point four five cents a day.",
+      "pause": 0.8,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "That sounds reasonable.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "The rate isn't locked, we'd give you written notice before any change and you could leave then with no exit fee. Are you happy for me to go ahead?",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "Yes, let's do it.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "What's the best email for your welcome pack and contract? The cooling-off notice goes there too.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "It's oliver dot grant at gmail dot com.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "Lovely, got it.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "And just to confirm the NMI off your bill, I've got 6 1 0 2 8 8 1 1 4 4 5. Does that match?",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "Yes, that matches.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "And this is electricity only, you're not bringing gas across?",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "Electricity only.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "That's everything. You'll get the welcome pack by email within one business day and your ten business day cooling-off period starts when it lands.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "Thanks Marcus, bye.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    }
+  ]
+}

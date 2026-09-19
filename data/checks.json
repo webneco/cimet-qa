@@ -198,5 +198,342 @@
         "description": "Count turns that begin before the previous speaker finished. High counts usually mean poor audio separation, not a compliance breach."
       }
     }
+  ],
+  "extra_packs": [
+    {
+      "pack_id": "NBN-QA",
+      "retailer": "Provider A (internet)",
+      "vertical": "nbn",
+      "checklist_id": "PA-NBN-SALES-QA",
+      "checklist_version": "NBN-2026.09",
+      "effective_from": "2026-09-01",
+      "confidence_floor_critical": 0.6,
+      "type_legend": {
+        "A": "Script span match or a deterministic rule. No LLM. Placeholder tags such as [EMAIL] count as the value having been said.",
+        "B": "Extract what the AGENT asserted (LLM, or the deterministic fallback), then compare it to the lead and plan with deterministic code. Where the agent's words and the order screen disagree, G8 scores it as a reduced-confidence FAIL and the critical floor decides FAIL or UNSURE.",
+        "C": "Observation only. Coaching note. Never blocks a sale."
+      },
+      "checks": [
+        {
+          "check_id": "recording_disclaimer_at_open",
+          "name": "Recording disclaimer given at the open",
+          "section": "1. Opening",
+          "type": "A",
+          "critical": true,
+          "weight": 15,
+          "check_version": "1.0.0",
+          "effective_from": "2026-09-01",
+          "regulatory_basis": "Surveillance devices legislation / call-recording notice before the sales conversation",
+          "script_or_rule": {
+            "kind": "script_span",
+            "description": "Agent must say the call is recorded and why, within the first three agent turns, before any price is quoted.",
+            "required_phrases": [
+              [
+                "this call will be recorded",
+                "this call is being recorded",
+                "this call is recorded",
+                "call may be recorded"
+              ],
+              "quality assurance",
+              "training purposes"
+            ],
+            "max_agent_turn": 3,
+            "window_turns": 1,
+            "pass_threshold": 0.85,
+            "unsure_threshold": 0.55
+          }
+        },
+        {
+          "check_id": "identity_verified",
+          "name": "Customer identity verified (name as per ID, email, date of birth)",
+          "section": "1. Opening",
+          "type": "A",
+          "critical": true,
+          "weight": 10,
+          "check_version": "1.0.0",
+          "effective_from": "2026-09-01",
+          "regulatory_basis": "Telecommunications Consumer Protections Code - authorised person, account holder identity",
+          "script_or_rule": {
+            "kind": "script_span",
+            "description": "Agent must verify full name as per ID, the email address and the date of birth.",
+            "required_phrases": [
+              [
+                "first and last name as per id",
+                "full name as per id",
+                "name as per your id"
+              ],
+              [
+                "email address can you please also verify",
+                "confirm your email address",
+                "verify your email"
+              ],
+              [
+                "your date of birth",
+                "date of birth"
+              ]
+            ],
+            "window_turns": 10,
+            "pass_threshold": 0.85,
+            "unsure_threshold": 0.55
+          }
+        },
+        {
+          "check_id": "card_on_call",
+          "name": "Card details kept off the recording",
+          "section": "1. Opening",
+          "type": "A",
+          "critical": true,
+          "weight": 10,
+          "check_version": "1.0.0",
+          "effective_from": "2026-09-01",
+          "regulatory_basis": "PCI DSS - no primary account number (PAN) on call recordings",
+          "script_or_rule": {
+            "kind": "card_handling",
+            "description": "Pass if the agent mentions muting or pausing the recording and no card number (PAN) appears. A PAN on the call fails. Payment discussed with no mute mentioned is unsure.",
+            "payment_cues": "\\b(credit card|debit card|card details|payment method|direct debit)",
+            "mute_cues": "\\b(mute|pause|paus(?:e|ing)|stop)\\w*\\s+(?:the\\s+)?recording|recording\\s+(?:is\\s+)?(?:now\\s+)?(?:muted|paused|stopped)"
+          }
+        },
+        {
+          "check_id": "promo_price",
+          "name": "Promotional price and period match the plan",
+          "section": "2. Price and plan",
+          "type": "B",
+          "critical": true,
+          "weight": 10,
+          "check_version": "1.0.0",
+          "effective_from": "2026-09-01",
+          "regulatory_basis": "TCP Code - price disclosure; ACL misleading representations",
+          "script_or_rule": {
+            "kind": "extract_and_compare",
+            "field": "spoken_promo_price",
+            "description": "The discounted monthly price and how long it lasts, as the agent stated it.",
+            "extraction_target": "The promotional (discounted) monthly price the AGENT quoted and the number of months it applies for. Assemble spoken number words into digits and answer in the form '<dollars>.<cents> for <n> months'. Use the agent's own statement of the offer, not the customer's.",
+            "reference": {
+              "source": "lead",
+              "path": [
+                "plan.promo_price_cents",
+                "plan.promo_months"
+              ],
+              "label": "Plan promo price and months"
+            },
+            "comparator": "promo_price_months",
+            "tolerance": 0,
+            "unit": "AUD/month"
+          }
+        },
+        {
+          "check_id": "ongoing_price",
+          "name": "Price after the promotion matches the plan",
+          "section": "2. Price and plan",
+          "type": "B",
+          "critical": true,
+          "weight": 10,
+          "check_version": "1.0.0",
+          "effective_from": "2026-09-01",
+          "regulatory_basis": "TCP Code - price disclosure",
+          "script_or_rule": {
+            "kind": "extract_and_compare",
+            "field": "spoken_ongoing_price",
+            "description": "The regular monthly price that applies after the promotion.",
+            "extraction_target": "The regular / ongoing monthly price the AGENT said applies after the promotional period ends. Assemble spoken number words into digits and answer as '<dollars>.<cents>'.",
+            "reference": {
+              "source": "lead",
+              "path": "plan.ongoing_price_cents",
+              "label": "Plan ongoing price"
+            },
+            "comparator": "money_cents",
+            "tolerance": 0,
+            "unit": "AUD/month"
+          }
+        },
+        {
+          "check_id": "speed_peak",
+          "name": "Typical evening (peak) speed matches the plan",
+          "section": "2. Price and plan",
+          "type": "B",
+          "critical": true,
+          "weight": 10,
+          "check_version": "1.0.0",
+          "effective_from": "2026-09-01",
+          "regulatory_basis": "ACCC broadband speed claims guidance - typical busy-period (7-11pm) speed",
+          "script_or_rule": {
+            "kind": "extract_and_compare",
+            "field": "spoken_speed_peak",
+            "description": "Typical download and upload speed in the 7pm-11pm busy period, as the agent stated it.",
+            "extraction_target": "The typical DOWNLOAD and UPLOAD speeds in Mbps the AGENT stated for the plan (the typical evening / busy-period speed). Assemble spoken number words into digits and answer as '<download>/<upload>'.",
+            "reference": {
+              "source": "lead",
+              "path": [
+                "plan.speed_download_mbps",
+                "plan.speed_upload_mbps"
+              ],
+              "label": "Plan typical evening speed"
+            },
+            "comparator": "speed_pair",
+            "tolerance": 0,
+            "unit": "Mbps"
+          }
+        },
+        {
+          "check_id": "modem_model_and_cost",
+          "name": "Modem model and cost match the plan",
+          "section": "2. Price and plan",
+          "type": "B",
+          "critical": false,
+          "weight": 5,
+          "check_version": "1.0.0",
+          "effective_from": "2026-09-01",
+          "regulatory_basis": "Non-blocking - hardware disclosure",
+          "script_or_rule": {
+            "kind": "extract_and_compare",
+            "field": "spoken_modem",
+            "description": "Modem model and its cost to the customer.",
+            "extraction_target": "The modem model the AGENT said the customer will receive and what it costs the customer. Answer as '<brand> <model>, $<cost>' with spoken number words as digits (for example a model read as 'AB forty' is 'AB40'); 'free' or 'no extra cost' is $0.",
+            "reference": {
+              "source": "lead",
+              "path": [
+                "plan.modem_model",
+                "plan.modem_cost_cents"
+              ],
+              "label": "Plan modem"
+            },
+            "comparator": "modem_model_cost",
+            "tolerance": 0,
+            "unit": "model/AUD"
+          }
+        },
+        {
+          "check_id": "tmc_disclosed",
+          "name": "Total minimum cost disclosed correctly",
+          "section": "3. Costs and fees",
+          "type": "B",
+          "critical": true,
+          "weight": 10,
+          "check_version": "1.0.0",
+          "effective_from": "2026-09-01",
+          "regulatory_basis": "TCP Code - total minimum cost must be disclosed before the sale",
+          "script_or_rule": {
+            "kind": "extract_and_compare",
+            "field": "spoken_tmc",
+            "description": "The total minimum cost the agent TOLD the customer, as opposed to a figure the agent read off the order screen.",
+            "extraction_target": "The TOTAL MINIMUM COST that the AGENT asserted to the customer as the cost of the plan. If the agent also read a different total minimum cost off the customer's screen, report the agent's own assertion, not the screen reading. Answer as '<dollars>.<cents>'.",
+            "reference": {
+              "source": "lead",
+              "path": [
+                "tmc_cents",
+                "new_development_fee_cents",
+                "fee_applicable",
+                "plan.promo_price_cents"
+              ],
+              "label": "Lead TMC and conditional fee"
+            },
+            "comparator": "tmc_vs_conditional_fee",
+            "tolerance": 100,
+            "unit": "AUD"
+          }
+        },
+        {
+          "check_id": "development_fee_vs_screen",
+          "name": "New development fee: spoken guarantee vs order screen",
+          "section": "3. Costs and fees",
+          "type": "B",
+          "critical": true,
+          "weight": 10,
+          "check_version": "1.0.0",
+          "effective_from": "2026-09-01",
+          "regulatory_basis": "ACL - no misleading guarantee about charges; TCP Code fee disclosure",
+          "script_or_rule": {
+            "kind": "extract_and_compare",
+            "field": "spoken_development_fee",
+            "description": "What the agent said about the new development fee: the amount, and whether the customer will be charged it.",
+            "extraction_target": "What the AGENT said about the NEW DEVELOPMENT FEE: the amount in dollars and whether the customer will be charged it. Answer as '<dollars>; charged' or '<dollars>; not charged'.",
+            "reference": {
+              "source": "lead",
+              "path": [
+                "new_development_fee_cents",
+                "fee_applicable",
+                "tmc_cents"
+              ],
+              "label": "Lead development fee and order TMC"
+            },
+            "comparator": "fee_vs_screen",
+            "tolerance": 0,
+            "unit": "AUD"
+          }
+        },
+        {
+          "check_id": "contract_term",
+          "name": "Contract term stated consistently and matches the plan",
+          "section": "3. Costs and fees",
+          "type": "B",
+          "critical": true,
+          "weight": 10,
+          "check_version": "1.0.0",
+          "effective_from": "2026-09-01",
+          "regulatory_basis": "TCP Code - contract term disclosure",
+          "script_or_rule": {
+            "kind": "extract_and_compare",
+            "field": "spoken_contract_term",
+            "description": "The contract term the agent stated. Conflicting statements, or no contract term on the lead, cannot pass.",
+            "extraction_target": "The contract term the AGENT stated for the plan, for example 'month to month' or '12 months'. If the agent stated it more than once in different words, report every version separated by ' | '.",
+            "reference": {
+              "source": "lead",
+              "path": "plan.contract_term_months",
+              "label": "Plan contract term (months)"
+            },
+            "comparator": "contract_term",
+            "tolerance": 0,
+            "unit": "months"
+          }
+        },
+        {
+          "check_id": "talk_over",
+          "name": "Talk-over and cut-off turns",
+          "section": "4. Call quality (coaching only)",
+          "type": "C",
+          "critical": false,
+          "weight": 0,
+          "check_version": "1.0.0",
+          "effective_from": "2026-09-01",
+          "regulatory_basis": "Coaching only - never blocks a sale",
+          "script_or_rule": {
+            "kind": "signal_note",
+            "metric": "truncated_turns",
+            "threshold": 3,
+            "description": "Turns that stop mid-sentence, a sign one party talked over the other. Used because this transcript has no real timings to measure overlap from."
+          }
+        },
+        {
+          "check_id": "customer_confusion",
+          "name": "Customer confusion",
+          "section": "4. Call quality (coaching only)",
+          "type": "C",
+          "critical": false,
+          "weight": 0,
+          "check_version": "1.0.0",
+          "effective_from": "2026-09-01",
+          "regulatory_basis": "Coaching only - never blocks a sale",
+          "script_or_rule": {
+            "kind": "signal_note",
+            "metric": "confusion_markers",
+            "threshold": 3,
+            "markers": [
+              "didn't get that",
+              "what was that",
+              "sorry, what",
+              "what, sir",
+              "is that it?",
+              "is that the one?",
+              "how does it work",
+              "i don't understand",
+              "confused",
+              "what do you mean"
+            ],
+            "description": "Customer turns asking the agent to repeat or explain. Coaching signal for pace and clarity."
+          }
+        }
+      ]
+    }
   ]
 }

@@ -1,0 +1,218 @@
+{
+  "lead_id": "3613804",
+  "title": "Recording disclaimer skipped",
+  "voices": {
+    "agent": "Marcus Lee",
+    "customer": "Grace Palmer"
+  },
+  "lines": [
+    {
+      "speaker": "agent",
+      "text": "Hi, it's Marcus from Retailer One, I'm just following up on the energy plan you looked at online. Have you got a few minutes?",
+      "pause": 0.3,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "Yeah, that's fine, go ahead.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "Thank you. Can I just confirm I'm speaking with the account holder, Grace Palmer, and that you're authorised to make changes to this account?",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "Yes, that's me. Grace Palmer, the account's in my name.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "Perfect, thanks Grace. And the supply address is 9 Grey Street, St Kilda, Victoria, three one eight two?",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "That's the one.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "Great. So this is about the Saver Flex plan. Before any numbers there's a short statement I'm required to read to you in full.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "No worries.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "The Default Market Offer is the reference price set by the Australian Energy Regulator. The estimated annual cost of this plan is four per cent less than the reference price for an average household in your distribution zone. This is an estimate only, and your actual cost will depend on your usage.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "Okay, got it.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "A couple of quick questions first. Does anyone at the property rely on life support equipment, and do you hold a concession card?",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "No to both.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "Let me pull the pricing up for you.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "On the Saver Flex plan your usage rate is 31.9 cents per kilowatt hour including GST, and the daily supply charge is ninety-eight point four five cents a day.",
+      "pause": 0.8,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "That sounds reasonable.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "The rate isn't locked, we'd give you written notice before any change and you could leave then with no exit fee. Are you happy for me to go ahead?",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "Yes, let's do it.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "What's the best email for your welcome pack and contract? The cooling-off notice goes there too.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "grace dot palmer at icloud dot com.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "Lovely, got it.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "And just to confirm the NMI off your bill, I've got 6 1 0 2 7 7 8 8 9 9 0. Does that match?",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "Yes, that matches.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "And this is electricity only, you're not bringing gas across?",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "Electricity only.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "agent",
+      "text": "That's everything. You'll get the welcome pack by email within one business day and your ten business day cooling-off period starts when it lands.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    },
+    {
+      "speaker": "customer",
+      "text": "Thanks Marcus, bye.",
+      "pause": 0.7,
+      "ref_text": null,
+      "asr": null,
+      "overlap": 0.0
+    }
+  ]
+}

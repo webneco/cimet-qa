@@ -1,0 +1,246 @@
+{
+  "lead_id": "3613809",
+  "call_id": "CALL-3613809-01",
+  "recorded_at": "2026-09-10T09:56:00+10:00",
+  "duration_sec": 160.7,
+  "audio_quality": "clean",
+  "asr_engine": "synthetic-reference (script timing estimate, no ASR)",
+  "asr_version": "synth-1",
+  "channels": "diarised",
+  "turns": [
+    {
+      "idx": 0,
+      "speaker": "agent",
+      "speaker_name": "Marcus L.",
+      "text": "Hi, you're speaking with Marcus from Retailer One. Before we go any further I need to let you know that this call is being recorded for quality assurance and training purposes. Do I have your consent to continue on a recorded line?",
+      "start_sec": 0.3,
+      "end_sec": 15.9,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 1,
+      "speaker": "customer",
+      "speaker_name": "Oliver G.",
+      "text": "Yeah, that's fine, go ahead.",
+      "start_sec": 16.6,
+      "end_sec": 18.7,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 2,
+      "speaker": "agent",
+      "speaker_name": "Marcus L.",
+      "text": "Thank you. Can I just confirm I'm speaking with the account holder, Oliver Grant, and that you're authorised to make changes to this account?",
+      "start_sec": 19.4,
+      "end_sec": 28.3,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 3,
+      "speaker": "customer",
+      "speaker_name": "Oliver G.",
+      "text": "Yes, that's me. Oliver Grant, the account's in my name.",
+      "start_sec": 29.0,
+      "end_sec": 33.2,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 4,
+      "speaker": "agent",
+      "speaker_name": "Marcus L.",
+      "text": "Perfect, thanks Oliver. And the supply address is 8 Park Lane, Brighton, Victoria, three one eight six?",
+      "start_sec": 33.9,
+      "end_sec": 40.2,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 5,
+      "speaker": "customer",
+      "speaker_name": "Oliver G.",
+      "text": "That's the one.",
+      "start_sec": 40.9,
+      "end_sec": 42.1,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 6,
+      "speaker": "agent",
+      "speaker_name": "Marcus L.",
+      "text": "Great. So this is about the Saver Flex plan. Before any numbers there's a short statement I'm required to read to you in full.",
+      "start_sec": 42.8,
+      "end_sec": 51.7,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 7,
+      "speaker": "customer",
+      "speaker_name": "Oliver G.",
+      "text": "No worries.",
+      "start_sec": 52.4,
+      "end_sec": 53.6,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 8,
+      "speaker": "agent",
+      "speaker_name": "Marcus L.",
+      "text": "The Default Market Offer is the reference price set by the Australian Energy Regulator. The estimated annual cost of this plan is four per cent less than the reference price for an average household in your distribution zone. This is an estimate only, and your actual cost will depend on your usage.",
+      "start_sec": 54.3,
+      "end_sec": 73.6,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 9,
+      "speaker": "customer",
+      "speaker_name": "Oliver G.",
+      "text": "Okay, got it.",
+      "start_sec": 74.3,
+      "end_sec": 75.5,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 10,
+      "speaker": "agent",
+      "speaker_name": "Marcus L.",
+      "text": "A couple of quick questions first. Does anyone at the property rely on life support equipment, and do you hold a concession card?",
+      "start_sec": 76.2,
+      "end_sec": 84.7,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 11,
+      "speaker": "customer",
+      "speaker_name": "Oliver G.",
+      "text": "No to both.",
+      "start_sec": 85.4,
+      "end_sec": 86.6,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 12,
+      "speaker": "agent",
+      "speaker_name": "Marcus L.",
+      "text": "Let me pull the pricing up for you.",
+      "start_sec": 87.3,
+      "end_sec": 90.3,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 13,
+      "speaker": "agent",
+      "speaker_name": "Marcus L.",
+      "text": "On the Saver Flex plan your usage rate is 31.9 cents per kilowatt hour including GST, and the daily supply charge is ninety-eight point four five cents a day.",
+      "start_sec": 91.1,
+      "end_sec": 101.8,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 14,
+      "speaker": "customer",
+      "speaker_name": "Oliver G.",
+      "text": "That sounds reasonable.",
+      "start_sec": 102.5,
+      "end_sec": 103.7,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 15,
+      "speaker": "agent",
+      "speaker_name": "Marcus L.",
+      "text": "The rate isn't locked, we'd give you written notice before any change and you could leave then with no exit fee. Are you happy for me to go ahead?",
+      "start_sec": 104.4,
+      "end_sec": 115.1,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 16,
+      "speaker": "customer",
+      "speaker_name": "Oliver G.",
+      "text": "Yes, let's do it.",
+      "start_sec": 115.8,
+      "end_sec": 117.5,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 17,
+      "speaker": "agent",
+      "speaker_name": "Marcus L.",
+      "text": "What's the best email for your welcome pack and contract? The cooling-off notice goes there too.",
+      "start_sec": 118.2,
+      "end_sec": 124.1,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 18,
+      "speaker": "customer",
+      "speaker_name": "Oliver G.",
+      "text": "It's oliver dot grant at gmail dot com.",
+      "start_sec": 124.8,
+      "end_sec": 128.1,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 19,
+      "speaker": "agent",
+      "speaker_name": "Marcus L.",
+      "text": "Lovely, got it.",
+      "start_sec": 128.8,
+      "end_sec": 130.0,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 20,
+      "speaker": "agent",
+      "speaker_name": "Marcus L.",
+      "text": "And just to confirm the NMI off your bill, I've got 6 1 0 2 8 8 1 1 4 4 5. Does that match?",
+      "start_sec": 130.7,
+      "end_sec": 140.0,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 21,
+      "speaker": "customer",
+      "speaker_name": "Oliver G.",
+      "text": "Yes, that matches.",
+      "start_sec": 140.7,
+      "end_sec": 141.9,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 22,
+      "speaker": "agent",
+      "speaker_name": "Marcus L.",
+      "text": "And this is electricity only, you're not bringing gas across?",
+      "start_sec": 142.6,
+      "end_sec": 146.3,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 23,
+      "speaker": "customer",
+      "speaker_name": "Oliver G.",
+      "text": "Electricity only.",
+      "start_sec": 147.0,
+      "end_sec": 148.2,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 24,
+      "speaker": "agent",
+      "speaker_name": "Marcus L.",
+      "text": "That's everything. You'll get the welcome pack by email within one business day and your ten business day cooling-off period starts when it lands.",
+      "start_sec": 148.9,
+      "end_sec": 157.8,
+      "asr_confidence": 0.95
+    },
+    {
+      "idx": 25,
+      "speaker": "customer",
+      "speaker_name": "Oliver G.",
+      "text": "Thanks Marcus, bye.",
+      "start_sec": 158.5,
+      "end_sec": 159.7,
+      "asr_confidence": 0.95
+    }
+  ]
+}

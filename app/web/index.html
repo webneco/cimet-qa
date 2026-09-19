@@ -21,7 +21,10 @@
   <div class="leadpicker" id="leadPicker" role="tablist" aria-label="Leads"></div>
 
   <div class="topmeta">
+    <span class="badge" id="diallerBadge" hidden></span>
+    <span class="badge" id="asrBadge" title="Speech-to-text used for dialler recordings">ASR</span>
     <span class="badge" id="extractorBadge" title="Which engine scored Type B checks">engine</span>
+    <button class="btn ghost" id="evalBtn" title="Agreement with hand-labelled calls">Accuracy</button>
     <button class="btn ghost" id="rerunBtn" title="Re-ingest the transcript and score it again">Re-run</button>
   </div>
 </header>
@@ -71,6 +74,10 @@
       <span class="panelmeta" id="transcriptMeta"></span>
     </div>
     <div class="redactbar" id="redactBar"></div>
+    <div class="playerbar" id="playerBar" hidden>
+      <audio id="player" controls preload="auto"></audio>
+      <span class="playermeta" id="playerMeta"></span>
+    </div>
     <div id="turnList" class="turns"></div>
   </section>
 
@@ -120,6 +127,27 @@
     <div class="modalactions">
       <button class="btn ghost" id="ovCancel">Cancel</button>
       <button class="btn primary" id="ovSubmit">Save override</button>
+    </div>
+  </div>
+</div>
+
+<!-- ---------------------------------------------------------------- eval modal -->
+<div class="modalwrap" id="evalModal" hidden>
+  <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="evTitle">
+    <div class="evhead">
+      <div>
+        <h3 id="evTitle">Scoring accuracy</h3>
+        <p class="hint" id="evSub">Machine verdicts against hand-labelled synthetic calls.</p>
+      </div>
+      <div class="toggle" id="evSource">
+        <button type="button" data-source="fixture" aria-pressed="true">Reference transcripts</button>
+        <button type="button" data-source="asr" aria-pressed="false">From audio (ASR)</button>
+      </div>
+    </div>
+    <div id="evBody" class="evbody"></div>
+    <div class="modalactions">
+      <button class="btn ghost" id="evClose">Close</button>
+      <button class="btn primary" id="evRun">Run evaluation</button>
     </div>
   </div>
 </div>

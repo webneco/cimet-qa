@@ -8,17 +8,18 @@ leader is asked to trust is reconstructable from that one file.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from . import __version__, gate
+from . import __version__, asr, gate
 from .config import RUNS_DIR
 from .llm import Extractor, LeakGuardError
 from .offline_extract import OfflineExtractor
-from .scoring import score_type_a, score_type_b, score_type_c
+from .scoring import score_card_handling, score_type_a, score_type_b, score_type_c
 from .store import Store, utcnow
-from .textutil import mmss
+from .textutil import mmss, redact_long_digits
 
 MIN_OVERRIDE_REASON = 10
 
@@ -54,14 +55,83 @@ class Pipeline:
 
     # ------------------------------------------------------------------ ingest
 
-    def ingest(self, lead_id: str) -> dict:
+    def ingest(self, lead_id: str, source: str = "auto") -> dict:
         if not lead_id:
             raise PipelineError("lead_id is required")
         try:
-            record = self.store.ingest(lead_id, self.settings.redact_digit_run)
+            record = self.store.ingest(lead_id, self.settings.redact_digit_run, source)
         except KeyError as exc:
             raise PipelineError(_msg(exc)) from None
         return record
+
+    def ingest_recording(self, lead_id: str, audio: bytes, filename: str, content_type: str,
+                         meta: dict | None = None, on_stage=None) -> dict:
+        """Dialler recording -> ASR -> transcript stored against the lead -> scored run.
+
+        The recording is saved before ASR runs, so a transcription failure never loses
+        the call. The transcript is written in the same shape as the fixtures, with the
+        engine, the audio checksum and the speaker mapping on it, then scored exactly
+        like any other transcript.
+        """
+        stage = on_stage or (lambda _name: None)
+        try:
+            lead = self.store.lead(lead_id)
+        except KeyError as exc:
+            raise PipelineError(_msg(exc)) from None
+        if not audio:
+            raise PipelineError("the recording is empty")
+        ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ".wav"
+        audio_path = self.store.save_audio(lead_id, audio, ext)
+
+        stage("transcribing")
+        t0 = time.perf_counter()
+        try:
+            result = asr.transcribe(audio, filename, content_type, self.settings)
+        except asr.AsrError as exc:
+            raise PipelineError(str(exc)) from None
+        asr_ms = int((time.perf_counter() - t0) * 1000)
+
+        turns = result["turns"]
+        meta = meta or {}
+        doc = {
+            "lead_id": lead_id,
+            "call_id": meta.get("call_id") or lead.get("call_id"),
+            "recorded_at": meta.get("recorded_at") or lead.get("recorded_at"),
+            "duration_sec": turns[-1]["end_sec"],
+            "audio_quality": "from_recording",
+            "asr_engine": result["asr_engine"],
+            "asr_ms": asr_ms,
+            "channels": "mono_diarised",
+            "speaker_mapping": result["speaker_mapping"],
+            "audio": {
+                "sha256": hashlib.sha256(audio).hexdigest(),
+                "bytes": len(audio),
+                "filename": filename,
+                "stored_as": audio_path.name,
+                "received_from": meta.get("received_from", "dialler_webhook"),
+            },
+            "turns": turns,
+        }
+        # Raw ASR text can hold a spoken card number. Mask before the transcript
+        # touches disk, and carry the count so the ingest still reports it.
+        masked = 0
+        for t in doc["turns"]:
+            t["text"], n = redact_long_digits(t["text"], self.settings.redact_digit_run)
+            masked += n
+        doc["redactions_at_asr"] = masked
+        self.store.save_asr_transcript(lead_id, doc)
+
+        stage("scoring")
+        run = self.run_lead(lead_id, source="asr")
+        run["pipeline_trace"].insert(0, {
+            "stage": "asr",
+            "detail": f"{result['asr_engine']}: {len(turns)} turns, agent = "
+                      f"{result['speaker_mapping']['agent_speaker']} "
+                      f"({result['speaker_mapping']['method']})",
+            "ms": asr_ms,
+        })
+        self.store.save_run(run)
+        return run
 
     # ------------------------------------------------------------------- score
 
@@ -80,7 +150,8 @@ class Pipeline:
                 return fallback, None
         return self.offline.extract(check, turns, secrets), None
 
-    def score(self, ingest_id: str) -> dict:
+    def score(self, ingest_id: str, record: bool = True) -> dict:
+        """Score an ingest. record=False keeps the run in memory only (used by the eval)."""
         started = time.perf_counter()
         try:
             ingest = self.store.get_ingest(ingest_id)
@@ -100,7 +171,9 @@ class Pipeline:
             "ms": 0,
         }]
 
-        type_b_checks = [c for c in self.store.checks if c["type"] == "B"]
+        pack = self.store.pack_for(lead_id)
+        checks = pack["checks"]
+        type_b_checks = [c for c in checks if c["type"] == "B"]
         t0 = time.perf_counter()
         extractions: dict[str, tuple[dict | None, str | None]] = {}
         if type_b_checks:
@@ -124,8 +197,10 @@ class Pipeline:
 
         t0 = time.perf_counter()
         results: list[dict] = []
-        for check in self.store.checks:
-            if check["type"] == "A":
+        for check in checks:
+            if check["type"] == "A" and check["script_or_rule"].get("kind") == "card_handling":
+                results.append(score_card_handling(check, turns, floor))
+            elif check["type"] == "A":
                 results.append(score_type_a(check, turns, floor))
             elif check["type"] == "B":
                 extraction, error = extractions.get(check["check_id"], (None, "extractor not run"))
@@ -140,7 +215,7 @@ class Pipeline:
         trace.append({
             "stage": "score",
             "detail": f"{len(results)} checks scored against checklist "
-                      f"{self.store.checks_doc['checklist_version']}",
+                      f"{pack['checklist_version']}",
             "ms": int((time.perf_counter() - t0) * 1000),
         })
 
@@ -162,14 +237,19 @@ class Pipeline:
             "completed_at": utcnow(),
             "duration_ms": int((time.perf_counter() - started) * 1000),
             "checklist": {
-                "retailer": self.store.checks_doc["retailer"],
-                "checklist_id": self.store.checks_doc["checklist_id"],
-                "checklist_version": self.store.checks_doc["checklist_version"],
-                "effective_from": self.store.checks_doc["effective_from"],
+                "pack_id": pack.get("pack_id", "default"),
+                "retailer": pack["retailer"],
+                "checklist_id": pack["checklist_id"],
+                "checklist_version": pack["checklist_version"],
+                "effective_from": pack["effective_from"],
+                "check_count": len(checks),
             },
             "lead": {
                 "lead_id": lead_id,
                 "retailer": lead["retailer"],
+                "vertical": lead.get("vertical", "energy"),
+                "commercials": {k: lead[k] for k in ("tmc_cents", "new_development_fee_cents", "fee_applicable")
+                                if k in lead} or None,
                 "plan_id": lead["plan_id"],
                 "channel": lead.get("channel"),
                 "agent_id": lead.get("agent_id"),
@@ -186,6 +266,7 @@ class Pipeline:
             "plan_snapshot": plan,
             "transcript": {k: v for k, v in ingest.items() if k != "turns"},
             "turns": turns,
+            "audio_url": f"/api/audio/{lead_id}" if self.store.audio_for(lead_id) else None,
             "results": results,
             "gate": decision,
             "gate_history": [{
@@ -200,12 +281,13 @@ class Pipeline:
             "pipeline_trace": trace,
             "warnings": list(self.settings.warnings),
         }
-        self.store.save_run(run)
-        self._enqueue(run)
+        if record:
+            self.store.save_run(run)
+            self._enqueue(run)
         return run
 
-    def run_lead(self, lead_id: str) -> dict:
-        return self.score(self.ingest(lead_id)["ingest_id"])
+    def run_lead(self, lead_id: str, source: str = "auto", record: bool = True) -> dict:
+        return self.score(self.ingest(lead_id, source)["ingest_id"], record)
 
     def _enqueue(self, run: dict) -> None:
         """Write the routing decision to a queue file so HELD/QA are demonstrably queued."""

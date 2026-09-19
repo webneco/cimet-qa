@@ -1,0 +1,173 @@
+{
+  "note": "Hand-labelled expected outcome per check. 'pass' means an auditor listening to the call would pass it. The scorer never reads this file.",
+  "leads": {
+    "3613801": {
+      "title": "Clean compliant call",
+      "checks": {
+        "account_holder": "pass",
+        "dmo_verbatim": "pass",
+        "email_captured": "pass",
+        "fuel_type": "pass",
+        "nmi": "pass",
+        "rates_and_charges": "pass",
+        "recording_disclaimer": "pass"
+      },
+      "gate": "SUBMITTED",
+      "labelled_by": "scenario author (hand label, independent of the scorer)"
+    },
+    "3613802": {
+      "title": "Wrong rate quoted (27.9 vs plan 31.9)",
+      "checks": {
+        "account_holder": "pass",
+        "dmo_verbatim": "pass",
+        "email_captured": "pass",
+        "fuel_type": "pass",
+        "nmi": "pass",
+        "rates_and_charges": "fail",
+        "recording_disclaimer": "pass"
+      },
+      "gate": "HELD",
+      "labelled_by": "scenario author (hand label, independent of the scorer)"
+    },
+    "3613803": {
+      "title": "Email keyed wrong in CRM",
+      "checks": {
+        "account_holder": "pass",
+        "dmo_verbatim": "pass",
+        "email_captured": "fail",
+        "fuel_type": "pass",
+        "nmi": "pass",
+        "rates_and_charges": "pass",
+        "recording_disclaimer": "pass"
+      },
+      "gate": "HELD",
+      "labelled_by": "scenario author (hand label, independent of the scorer)"
+    },
+    "3613804": {
+      "title": "Recording disclaimer skipped",
+      "checks": {
+        "account_holder": "pass",
+        "dmo_verbatim": "pass",
+        "email_captured": "pass",
+        "fuel_type": "pass",
+        "nmi": "pass",
+        "rates_and_charges": "pass",
+        "recording_disclaimer": "fail"
+      },
+      "gate": "HELD",
+      "labelled_by": "scenario author (hand label, independent of the scorer)"
+    },
+    "3613805": {
+      "title": "DMO statement paraphrased",
+      "checks": {
+        "account_holder": "pass",
+        "dmo_verbatim": "fail",
+        "email_captured": "pass",
+        "fuel_type": "pass",
+        "nmi": "pass",
+        "rates_and_charges": "pass",
+        "recording_disclaimer": "pass"
+      },
+      "gate": "HELD",
+      "labelled_by": "scenario author (hand label, independent of the scorer)"
+    },
+    "3613806": {
+      "title": "Account holder authority never confirmed",
+      "checks": {
+        "account_holder": "fail",
+        "dmo_verbatim": "pass",
+        "email_captured": "pass",
+        "fuel_type": "pass",
+        "nmi": "pass",
+        "rates_and_charges": "pass",
+        "recording_disclaimer": "pass"
+      },
+      "gate": "HELD",
+      "labelled_by": "scenario author (hand label, independent of the scorer)"
+    },
+    "3613807": {
+      "title": "Card number read aloud (must be redacted), otherwise clean",
+      "checks": {
+        "account_holder": "pass",
+        "dmo_verbatim": "pass",
+        "email_captured": "pass",
+        "fuel_type": "pass",
+        "nmi": "pass",
+        "rates_and_charges": "pass",
+        "recording_disclaimer": "pass"
+      },
+      "gate": "SUBMITTED",
+      "labelled_by": "scenario author (hand label, independent of the scorer)"
+    },
+    "3613808": {
+      "title": "Dead air and talk-over, otherwise clean",
+      "checks": {
+        "account_holder": "pass",
+        "dmo_verbatim": "pass",
+        "email_captured": "pass",
+        "fuel_type": "pass",
+        "nmi": "pass",
+        "rates_and_charges": "pass",
+        "recording_disclaimer": "pass"
+      },
+      "gate": "SUBMITTED",
+      "labelled_by": "scenario author (hand label, independent of the scorer)"
+    },
+    "3613809": {
+      "title": "NMI read-back mismatch (non-blocking)",
+      "checks": {
+        "account_holder": "pass",
+        "dmo_verbatim": "pass",
+        "email_captured": "pass",
+        "fuel_type": "pass",
+        "nmi": "fail",
+        "rates_and_charges": "pass",
+        "recording_disclaimer": "pass"
+      },
+      "gate": "SUBMITTED",
+      "labelled_by": "scenario author (hand label, independent of the scorer)"
+    },
+    "3613810": {
+      "title": "Crosstalk over the DMO - said, but not clearly heard",
+      "checks": {
+        "account_holder": "pass",
+        "dmo_verbatim": "pass",
+        "email_captured": "pass",
+        "fuel_type": "pass",
+        "nmi": "pass",
+        "rates_and_charges": "pass",
+        "recording_disclaimer": "pass"
+      },
+      "gate": "SUBMITTED",
+      "labelled_by": "scenario author (hand label, independent of the scorer)"
+    },
+    "3613811": {
+      "title": "Rate spoken in words, correct",
+      "checks": {
+        "account_holder": "pass",
+        "dmo_verbatim": "pass",
+        "email_captured": "pass",
+        "fuel_type": "pass",
+        "nmi": "pass",
+        "rates_and_charges": "pass",
+        "recording_disclaimer": "pass"
+      },
+      "gate": "SUBMITTED",
+      "labelled_by": "scenario author (hand label, independent of the scorer)"
+    },
+    "3613812": {
+      "title": "Two critical fails: wrong rate and wrong email",
+      "checks": {
+        "account_holder": "pass",
+        "dmo_verbatim": "pass",
+        "email_captured": "fail",
+        "fuel_type": "pass",
+        "nmi": "pass",
+        "rates_and_charges": "fail",
+        "recording_disclaimer": "pass"
+      },
+      "gate": "HELD",
+      "labelled_by": "scenario author (hand label, independent of the scorer)"
+    }
+  }
+}

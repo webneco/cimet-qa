@@ -71,6 +71,48 @@
         "life_support": false
       },
       "demo_note": "Poor audio, heavy crosstalk. Silence is NOT evidence of non-compliance. Expected gate: QA (critical unsure), never HELD and never SUBMITTED."
+    },
+    {
+      "lead_id": "3613793",
+      "retailer": "Provider A (internet)",
+      "vertical": "nbn",
+      "check_pack": "NBN-QA",
+      "plan_id": "PA-NBN25-VALUE",
+      "channel": "outbound_call",
+      "agent_id": "AG-[AGENT_NAME]",
+      "agent_name": "[AGENT_NAME]",
+      "call_id": "CALL-3613793-01",
+      "recorded_at": null,
+      "audio_quality": "unknown",
+      "transcript_path": "data/transcripts/3613793.json",
+      "crm": {
+        "account_holder_name": "[CUSTOMER_FULL_NAME]",
+        "preferred_name": "[CUSTOMER_NAME]",
+        "email": "[EMAIL]",
+        "phone": "[PHONE]",
+        "date_of_birth": "[DOB]",
+        "site_address": "[SERVICE_ADDRESS]",
+        "delivery_address": "[DELIVERY_ADDRESS]"
+      },
+      "plan": {
+        "plan_id": "PA-NBN25-VALUE",
+        "plan_name": "[PROVIDER_A] NBN 25 value plan",
+        "retailer": "Provider A (internet)",
+        "speed_download_mbps": 25,
+        "speed_upload_mbps": 8.5,
+        "speed_basis": "typical evening speed, 7pm-11pm",
+        "promo_price_cents": 4290,
+        "promo_months": 6,
+        "ongoing_price_cents": 7290,
+        "modem_model": "Netcom CF40",
+        "modem_cost_cents": 0,
+        "contract_term_months": null,
+        "contract_term_note": "not supplied with the lead - not invented; contract_term is unsure until it is"
+      },
+      "tmc_cents": 31700,
+      "new_development_fee_cents": 27500,
+      "fee_applicable": false,
+      "demo_note": "Official CIMET artefact: redacted internet (NBN) sales call, scored against the NBN-QA pack. Placeholder tags are kept verbatim."
     }
   ]
 }

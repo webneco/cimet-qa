@@ -17,6 +17,11 @@ MARKER_RE = re.compile(r"\[(inaudible|crosstalk|silence|unintelligible|indistinc
 # 10-11 digit NMIs and 10 digit phone numbers deliberately fall below this.
 LONG_DIGIT_RUN_RE = re.compile(r"\d(?:[ -]?\d){12,}")
 
+# The same rule for numbers ASR wrote out as words: "four one one one, double one ...".
+# Digit groups and single-digit words chain together across spaces, commas and hyphens.
+_SPOKEN_ITEM = r"(?:(?:double|triple)\s+)?(?:zero|oh|nought|one|two|three|four|five|six|seven|eight|nine|\d+)"
+SPOKEN_DIGIT_RUN_RE = re.compile(rf"\b{_SPOKEN_ITEM}(?:[\s,-]+{_SPOKEN_ITEM})*\b", re.IGNORECASE)
+
 _TOKEN_RE = re.compile(r"\d+(?:\.\d+)?|[a-z]+")
 
 _SMART = {
@@ -38,9 +43,23 @@ def strip_markers(text: str) -> tuple[str, list[str]]:
     return MARKER_RE.sub(" ", text or ""), found
 
 
+_US_SPELLING_RE = re.compile(r"iz(e|ed|es|ing|ation|ations)$")
+
+
 def tokens(text: str) -> list[str]:
-    """Lowercase word/number tokens. '28.6' stays a single token."""
-    return _TOKEN_RE.findall(normalise(text).lower())
+    """Lowercase word/number tokens. '28.6' stays a single token.
+
+    US spellings fold to Australian ones (ASR writes 'authorized'; the script says
+    'authorised'), and 'percent' splits to 'per cent', so spelling convention never
+    costs a script match.
+    """
+    out: list[str] = []
+    for tok in _TOKEN_RE.findall(normalise(text).lower()):
+        if tok == "percent":
+            out += ["per", "cent"]
+        else:
+            out.append(_US_SPELLING_RE.sub(r"is\1", tok) if len(tok) > 5 else tok)
+    return out
 
 
 def content_tokens(text: str) -> list[str]:
@@ -90,7 +109,28 @@ def redact_long_digits(text: str, min_run: int = 13) -> tuple[str, int]:
         digits = re.sub(r"\D", "", match.group(0))
         return f"[REDACTED {len(digits)}-DIGIT SEQUENCE]"
 
-    return pattern.sub(_mask, normalise(text)), count
+    def _mask_spoken(match: re.Match) -> str:
+        nonlocal count
+        n = spoken_digit_count(match.group(0))
+        if n < min_run:
+            return match.group(0)
+        count += 1
+        return f"[REDACTED {n}-DIGIT SEQUENCE]"
+
+    masked = pattern.sub(_mask, normalise(text))
+    return SPOKEN_DIGIT_RUN_RE.sub(_mask_spoken, masked), count
+
+
+def spoken_digit_count(run: str) -> int:
+    """Digits carried by a run like 'four one double one 2233' -> 1 + 1 + 2 + 4."""
+    total, mult = 0, 1
+    for word in re.findall(r"[a-z]+|\d+", run.lower()):
+        if word in {"double", "triple"}:
+            mult = 2 if word == "double" else 3
+            continue
+        total += (len(word) if word.isdigit() else 1) * mult
+        mult = 1
+    return total
 
 
 def mmss(seconds: float | int | None) -> str:

@@ -8,18 +8,26 @@ is a result this pipeline will not emit.
 
 from __future__ import annotations
 
+import re
+
 from .compare import compare
 from .store import utcnow
-from .textutil import content_tokens, mmss, phrase_ratio, strip_markers
+from .textutil import MARKER_RE, content_tokens, mmss, phrase_ratio, strip_markers, tokens
 
 STATUS_PASS, STATUS_FAIL, STATUS_UNSURE = "pass", "fail", "unsure"
 
 # Below this ASR confidence we treat the words as unheard rather than unsaid.
 AUDIO_TRUST_FLOOR = 0.75
 
+# G8: when the agent's words and the order screen disagree, the call alone cannot say
+# which the provider will bill - the screen is only known through the agent's own
+# description of it. The verdict is FAIL at this share of normal confidence, and
+# the critical floor then decides whether it holds the sale or goes to QA.
+CONFLICT_FACTOR = 0.7
+
 CONFIDENCE_FORMULA = {
     "A": "pass: min(0.98, 0.55 + 0.45*coverage) * mean_asr | fail: min(0.95, 0.55 + 0.45*(1-coverage)) * mean_asr | unsure: capped below the critical floor by construction",
-    "B": "pass/fail: min(0.99, extraction_confidence * asr_of_quoted_turn) | unsure: capped below the critical floor by construction",
+    "B": "pass/fail: min(0.99, extraction_confidence * asr_of_quoted_turn) | G8 screen-vs-spoken conflict: fail at 0.7x that | unsure: capped below the critical floor by construction",
     "C": "deterministic measurement over turn timings",
 }
 
@@ -80,17 +88,39 @@ def _finalise(result: dict, check: dict, floor: float) -> dict:
 
 def score_type_a(check: dict, turns: list[dict], floor: float) -> dict:
     rule = check["script_or_rule"]
-    required = rule["required_phrases"]
-    phrase_tokens = [content_tokens(p) for p in required]
+    # A required phrase is a string, or a list of acceptable wordings of the same thing.
+    required = [p if isinstance(p, list) else [p] for p in rule["required_phrases"]]
+    phrase_tokens = [[content_tokens(alt) for alt in alts] for alts in required]
     window_turns = int(rule.get("window_turns", 3))
     pass_threshold = float(rule.get("pass_threshold", 0.85))
     unsure_threshold = float(rule.get("unsure_threshold", 0.55))
+
+    def glued(window: list[dict]) -> str:
+        """The window with all spaces removed, so ASR run-togethers ('assuranceand')
+        still match. Audio markers and turn boundaries become '|', so words either
+        side of an [inaudible] can never be glued into a match."""
+        parts = []
+        for turn in window:
+            parts += ["".join(tokens(seg)) for seg in MARKER_RE.split(turn["text"])[::2]]
+        return "|".join(parts)
+
+    def ratio_of(alts: list[list[str]], window_tokens: list[str], joined: str) -> tuple[float, int, bool]:
+        best = (0.0, 0, False)
+        for i, alt in enumerate(alts):
+            r = phrase_ratio(alt, window_tokens)
+            glue = False
+            if r < 1.0 and alt and "".join(alt) in joined:
+                r, glue = 1.0, True
+            if r > best[0] + 1e-9:
+                best = (r, i, glue)
+        return best
 
     def measure(window: list[dict]) -> tuple[float, list[float]]:
         window_tokens: list[str] = []
         for turn in window:
             window_tokens.extend(content_tokens(turn["text"]))
-        ratios = [phrase_ratio(p, window_tokens) for p in phrase_tokens]
+        joined = glued(window)
+        ratios = [ratio_of(alts, window_tokens, joined)[0] for alts in phrase_tokens]
         return (sum(ratios) / len(ratios) if ratios else 0.0), ratios
 
     best = None
@@ -146,6 +176,19 @@ def score_type_a(check: dict, turns: list[dict], floor: float) -> dict:
         confidence = min(0.95, 0.55 + 0.45 * (1 - coverage)) * mean_asr
 
     guardrails: list[str] = []
+    notes: list[str] = []
+    # "At the open": the wording has to arrive within the first N agent turns. Counted
+    # in turns, not seconds, so it holds for transcripts whose timings are estimated.
+    agent_ordinal = None
+    if rule.get("max_agent_turn"):
+        agent_ordinal = 1 + sum(1 for t in turns if t.get("speaker") == "agent"
+                                and (t["start_sec"], t["idx"]) < (window[0]["start_sec"], window[0]["idx"]))
+        if status == STATUS_PASS and agent_ordinal > int(rule["max_agent_turn"]):
+            status = STATUS_FAIL
+            confidence = 0.9 * mean_asr
+            notes.append(f"the wording is present but only in agent turn {agent_ordinal}; "
+                         f"it must come within the first {rule['max_agent_turn']}")
+
     # G1: obstructed audio is not evidence of a missing script. Never fail on it.
     if status == STATUS_FAIL and (markers or min_asr < AUDIO_TRUST_FLOOR):
         reasons = []
@@ -161,6 +204,18 @@ def score_type_a(check: dict, turns: list[dict], floor: float) -> dict:
         status = STATUS_UNSURE
         confidence = min(0.5, 0.25 + 0.25 * coverage)
 
+    window_tokens = [tok for t in window for tok in content_tokens(t["text"])]
+    joined = glued(window)
+    phrase_rows = []
+    for alts_raw, alts in zip(required, phrase_tokens):
+        ratio, which, glue = ratio_of(alts, window_tokens, joined)
+        row = {"phrase": alts_raw[which], "ratio": round(ratio, 3), "found": ratio >= 0.9}
+        if len(alts_raw) > 1:
+            row["alternatives"] = alts_raw
+        if glue:
+            row["matched_run_together"] = True
+        phrase_rows.append(row)
+
     result.update(
         status=status,
         confidence=round(confidence, 2),
@@ -169,6 +224,7 @@ def score_type_a(check: dict, turns: list[dict], floor: float) -> dict:
         turn_idx=window[0]["idx"],
         speaker=window[0].get("speaker"),
         guardrails=guardrails,
+        **({"note": "; ".join(notes)} if notes else {}),
         evidence={
             "method": "deterministic_script_span",
             "llm_used": False,
@@ -176,19 +232,64 @@ def score_type_a(check: dict, turns: list[dict], floor: float) -> dict:
             "coverage": round(coverage, 4),
             "pass_threshold": pass_threshold,
             "unsure_threshold": unsure_threshold,
-            "phrases": [
-                {
-                    "phrase": phrase,
-                    "ratio": round(ratio, 3),
-                    "found": ratio >= 0.9,
-                }
-                for phrase, ratio in zip(required, best["ratios"])
-            ],
+            "phrases": phrase_rows,
+            **({"agent_turn_ordinal": agent_ordinal, "max_agent_turn": rule["max_agent_turn"]}
+               if rule.get("max_agent_turn") else {}),
             "window_turn_idx": [window[0]["idx"], window[-1]["idx"]],
             "audio_markers_in_span": sorted(set(markers)),
             "min_asr_confidence": round(min_asr, 2),
             "mean_asr_confidence": round(mean_asr, 2),
             "confidence_formula": CONFIDENCE_FORMULA["A"],
+        },
+    )
+    return _finalise(result, check, floor)
+
+
+def score_card_handling(check: dict, turns: list[dict], floor: float) -> dict:
+    """Card data must never be on the recording. Deterministic, no LLM.
+
+    PAN on the call (anything ingest had to mask) -> fail. Agent mentions muting or
+    pausing the recording -> pass. Payment discussed with no mute mentioned -> unsure,
+    because the call alone cannot show where the card number went.
+    """
+    rule = check["script_or_rule"]
+    payment_re = re.compile(rule["payment_cues"], re.IGNORECASE)
+    mute_re = re.compile(rule["mute_cues"], re.IGNORECASE)
+    pan = [t for t in turns if t.get("redacted")]
+    payment = [t for t in turns if payment_re.search(t["text"])]
+    mute = [t for t in turns if t.get("speaker") == "agent" and mute_re.search(t["text"])]
+    result = _base(check)
+
+    if pan:
+        anchor, status, confidence = pan[0], STATUS_FAIL, 0.95
+        note = (f"a card-length number was spoken on the recording at {mmss(anchor['start_sec'])} "
+                "and had to be masked at ingest")
+    elif mute:
+        anchor, status = mute[0], STATUS_PASS
+        confidence = 0.92 * anchor.get("asr_confidence", 1.0)
+        note = (f"recording muted for payment at {mmss(anchor['start_sec'])}; "
+                "no card number anywhere in the transcript")
+    elif payment:
+        anchor, status, confidence = payment[0], STATUS_UNSURE, 0.4
+        note = ("payment was discussed but the agent never said the recording was muted or paused - "
+                "the call cannot show where the card number went")
+    else:
+        anchor, status, confidence = (turns[0] if turns else None), STATUS_PASS, 0.9
+        note = "no payment discussed on this call"
+
+    result.update(
+        status=status, confidence=round(confidence, 2), note=note,
+        quote=anchor["text"] if anchor else "",
+        start_sec=anchor["start_sec"] if anchor else None,
+        turn_idx=anchor["idx"] if anchor else None,
+        speaker=anchor.get("speaker") if anchor else None,
+        evidence={
+            "method": "card_handling",
+            "llm_used": False,
+            "pan_turn_idx": [t["idx"] for t in pan],
+            "payment_turn_idx": [t["idx"] for t in payment],
+            "mute_turn_idx": [t["idx"] for t in mute],
+            "rule": rule["description"],
         },
     )
     return _finalise(result, check, floor)
@@ -231,6 +332,10 @@ def score_type_b(
         "llm_used": bool(meta.get("model")),
         "field": rule["field"],
         "extractor": meta.get("extractor", "unavailable"),
+        # Set when the LLM was configured but failed and the deterministic extractor
+        # stood in - the reason is kept so a fallback is never invisible.
+        "degraded_from": meta.get("degraded_from"),
+        "degrade_reason": (meta.get("degrade_reason") or "")[:400] or None,
         "model": meta.get("model"),
         "effort": meta.get("effort"),
         "prompt_sha256": meta.get("prompt_sha256"),
@@ -266,6 +371,7 @@ def score_type_b(
     evidence["extraction"] = {
         "found": found,
         "value": spoken_value,
+        "other_mentions": extraction.get("other_mentions") or [],
         "confidence": round(extraction_conf, 2),
         "reason": reason,
         "model_reported_start_sec": extraction.get("start_sec"),
@@ -324,11 +430,28 @@ def score_type_b(
 
     if comparison["match"] is None:
         guardrails.append(
-            f"G4 not comparable: {comparison['detail']}. Reported as unsure rather than guessing a verdict."
+            f"G4 not comparable: {comparison['detail'].removeprefix('not comparable: ')}. Reported as unsure rather than guessing a verdict."
         )
         status, confidence = STATUS_UNSURE, min(0.5, 0.3 + 0.2 * extraction_conf)
     elif comparison["match"]:
         status, confidence = STATUS_PASS, min(0.99, extraction_conf * turn_asr)
+    elif comparison.get("mishear_plausible"):
+        # G7: the two values differ in a way a listener could not hear. Failing it
+        # would hold a sale on ASR spelling; route it to a human with the clip instead.
+        guardrails.append(
+            f"G7 possible mishear: {comparison['mishear_reason']}. Reported as unsure so a person "
+            "listens to the clip, rather than holding the sale on how ASR spelled it."
+        )
+        status, confidence = STATUS_UNSURE, min(0.5, 0.3 + 0.2 * extraction_conf)
+    elif comparison.get("conflict"):
+        base = min(0.99, extraction_conf * turn_asr)
+        guardrails.append(
+            f"G8 screen vs spoken conflict: {comparison['conflict_reason']}. The call alone cannot "
+            f"show which the provider will bill, so this is a FAIL at {CONFLICT_FACTOR:.0%} of normal "
+            f"confidence ({base:.2f} -> {base * CONFLICT_FACTOR:.2f}); the critical floor decides "
+            "whether it holds the sale or routes it to QA."
+        )
+        status, confidence = STATUS_FAIL, base * CONFLICT_FACTOR
     else:
         status, confidence = STATUS_FAIL, min(0.99, extraction_conf * turn_asr)
 
@@ -397,10 +520,33 @@ def score_type_c(check: dict, turns: list[dict], floor: float) -> dict:
                 + (f", first at {occurrences[0]['timestamp']}" if occurrences else "")
                 + (f" - above the {threshold:g} coaching threshold" if observed > threshold
                    else f" - within the {threshold:g} coaching threshold"))
+    elif metric in {"truncated_turns", "confusion_markers"}:
+        if metric == "truncated_turns":
+            # A turn that stops mid-sentence: one party was cut off by the other.
+            hits = [t for t in ordered if t["text"].strip()
+                    and not re.search(r"""[.?!"')\]]$""", t["text"].strip())]
+            label = "turn(s) cut off mid-sentence"
+        else:
+            markers = [m.lower() for m in rule.get("markers", [])]
+            hits = [t for t in ordered if t.get("speaker") == "customer"
+                    and any(m in t["text"].lower() for m in markers)]
+            label = "customer turn(s) asking the agent to repeat or explain"
+        occurrences = [{"start_sec": t["start_sec"], "timestamp": mmss(t["start_sec"]),
+                        "turn_idx": t["idx"], "text": t["text"][:80]} for t in hits]
+        observed = len(hits)
+        if hits:
+            anchor, start_sec = hits[0], hits[0]["start_sec"]
+        else:
+            start_sec = anchor["start_sec"] if anchor else None
+        note = (f"{observed} {label}"
+                + (f", first at {occurrences[0]['timestamp']}" if occurrences else "")
+                + (f" - above the {threshold:g} coaching threshold" if observed > threshold
+                   else f" - within the {threshold:g} coaching threshold"))
     else:
         note, start_sec = f"unsupported metric {metric!r}", None
 
-    exceeded = observed > threshold if metric == "overlap_count" else bool(occurrences)
+    exceeded = (observed > threshold if metric in {"overlap_count", "truncated_turns", "confusion_markers"}
+                else bool(occurrences))
     result.update(
         status=STATUS_FAIL if exceeded else STATUS_PASS,
         confidence=0.99,

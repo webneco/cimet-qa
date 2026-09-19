@@ -4,8 +4,9 @@ Scores an Energy sales call against the Retailer 1 compliance checklist **before
 the lead is submitted to the CRM, and decides one of three things: **HELD**, **QA**,
 or **SUBMITTED**.
 
-Local, one command, no Docker, no auth, no database. The only external service it
-touches is the Anthropic API, and it runs end to end without a key.
+Local, one command, no Docker, no auth, no database. External services are optional:
+the Anthropic API for Type B extraction, and ElevenLabs or Deepgram for turning dialler
+recordings into transcripts. It runs end to end without any key.
 
 ---
 
@@ -33,7 +34,8 @@ records which extractor produced it. Nothing silently pretends to be an LLM.
 Other entry points:
 
 ```bash
-python run.py --selftest          # 68 behavioural assertions, offline, ~1s
+python run.py --selftest          # 91 behavioural assertions, offline, ~1s
+python run.py --eval              # accuracy against 12 hand-labelled calls
 python run.py --score 3613792     # score one lead in the terminal
 python run.py --no-llm            # force the deterministic extractor
 ```
@@ -132,6 +134,8 @@ visible in the UI and in the audit JSON:
 | **G4** not comparable | A spoken value that will not parse into comparable form reports unsure rather than guessing. |
 | **G5** low-confidence critical fail | A critical fail below the 0.60 floor is downgraded to unsure, so an uncertain machine routes to QA instead of holding a customer's sale. |
 | **G6** timestamp corrected | If the model's reported `start_sec` disagrees with the turn its quote came from, the transcript wins and the correction is logged. |
+| **G7** possible mishear | An email mismatch that audio cannot settle becomes **unsure**: the two spellings sound the same (rahman / raman), or the CRM holds a real provider and the transcript a non-existent one (bigpond / "bizpoint"). A CRM domain that is a near-miss of a real provider (gmial.com) is still a **fail** - that is a keying error, not a mishear. Both G7 cases were found by running real ElevenLabs Scribe output through the gate. |
+| **G8** screen vs spoken conflict | The agent's words disagree with the order screen in a way the call cannot settle (a guarantee a fee will not be charged while the order still includes it). FAIL at 0.7x confidence; the critical floor decides FAIL or UNSURE. |
 
 **Redaction.** Any run of 13 or more digits is masked at ingest, before scoring,
 before the prompt is built, before anything is stored. Card numbers never reach the
@@ -148,7 +152,138 @@ in this app writes to the CRM.
 **Silence is never evidence.** Lead 3613792 exists to prove it. Its DMO span scores
 44% coverage, below the 55% unsure threshold, so the raw thresholds would fail it;
 G1 converts it to unsure because the span is full of audio markers. `python run.py
---selftest` asserts exactly that, along with 67 other claims made on this page.
+--selftest` asserts exactly that, along with 90 other claims made on this page.
+
+**Card numbers spoken as words.** ASR often writes a card as "four one one one ...".
+Redaction counts digit words (including "double" and "triple") the same way it counts
+digits, and ASR output is masked before the transcript is written to disk.
+
+---
+
+## Lead 3613793 - the official NBN artefact, and checklist packs
+
+`data/transcripts/3613793.json` is the redacted CIMET internet sales call
+(`call-transcript-redacted.pdf`), copied row for row by `tools/build_3613793.py`:
+Speaker 2 is the agent, Speaker 1 the customer, and every placeholder tag
+(`[EMAIL]`, `[PROVIDER_A]`, ...) is kept verbatim - the self-test asserts that
+ingest changes none of them. The source has no audio or timings, so `start_sec` is
+estimated from turn order (`timing_estimated: true` on the transcript), and the
+source's ASR confidence is unknown (0.9 assumed, recorded on the file).
+
+**Packs.** `data/checks.json` keeps the Retailer 1 energy checklist at the top level
+and adds `extra_packs`. A lead is scored against the pack it names in `check_pack`;
+leads that name none (3613790-92 and the synthetic calls) are scored exactly as
+before - a before/after diff of every verdict on those leads shows zero changes.
+
+**NBN-QA** (12 checks): A - `recording_disclaimer_at_open` (must come within the first
+three agent turns), `identity_verified`, `card_on_call` (pass if the recording is
+muted and no card number is on the call); B - `promo_price`, `ongoing_price`,
+`speed_peak`, `modem_model_and_cost`, `tmc_disclosed`, `development_fee_vs_screen`,
+`contract_term`; C - `talk_over` (turns cut off mid-sentence, since there are no real
+timings), `customer_confusion`.
+
+**Result: QA.** Disclaimer, identity, card handling, prices, speed and modem pass.
+Three criticals route to a human:
+
+| | |
+|---|---|
+| `tmc_disclosed` | At 06:07 the agent says "the total minimum cost will be forty two dollars and ninety only". Later the agent reads $317 off the customer's screen three times and says to disregard it. $317 - $275 (the development fee the lead marks not applicable) = $42 - the agent's figure is the order total without the fee. **G8** scores it FAIL at 0.7x confidence; at 0.51 it is below the 0.60 floor, so **G5** routes it to QA. |
+| `development_fee_vs_screen` | Fee stated correctly ($275) and the lead agrees it does not apply, but the agent "guarantees" it will not be charged while the submitted order still totals $317 including it (and once calls it "two hundred seven dollars"). Same G8 -> G5 path. |
+| `contract_term` | The agent says both "month to month" and "one to one contract", and the lead carries no contract term - none is invented, so it is unsure. Add `plan.contract_term_months` to the lead to make it comparable. |
+
+Two generic scoring changes came out of this call: script phrases may list
+alternative wordings, and a phrase run together by ASR ("quality assuranceand,
+training") still matches - audio markers and turn boundaries block that, so words
+either side of an `[inaudible]` can never be glued into a match.
+
+**G8 screen vs spoken conflict.** When the agent's words and the order screen disagree
+and the call alone cannot show which the provider will bill, the verdict is FAIL at
+70% of normal confidence and the critical floor decides FAIL or UNSURE. With the
+deterministic extractor that lands at 0.51 (QA); a more confident extractor could
+reach the floor and hold the sale instead - which is the intended behaviour.
+
+---
+
+## Recording ingestion - the dialler webhook
+
+The brief's "build this first": the dialler pushes the recording, keyed on Lead ID,
+and nobody touches it after that.
+
+```
+dialler --POST /api/dialler/recording--> 202 {job_id}         (answers at once)
+            |
+            +-- recording saved to runs/audio/<lead>.<ext>    (kept even if ASR fails)
+            +-- ASR: speaker separation + word timestamps     (ElevenLabs Scribe or Deepgram)
+            +-- agent/customer decided by what each speaker says, recorded with its margin
+            +-- card numbers masked, transcript stored against the lead
+            +-- scored and gated like any other transcript    -> HELD / QA / SUBMITTED
+```
+
+Three ways to send it:
+
+```bash
+# raw audio body - what a dialler integration would normally do
+curl -X POST "http://127.0.0.1:8787/api/dialler/recording?lead_id=3613802&filename=call.wav" \
+     -H "Content-Type: audio/wav" --data-binary @call.wav
+
+# a URL the server fetches
+curl -X POST http://127.0.0.1:8787/api/dialler/recording -H "Content-Type: application/json" \
+     -d '{"lead_id": "3613802", "recording_url": "https://dialler.example/rec/123.wav"}'
+
+# base64 in JSON: {"lead_id", "audio_base64", "filename"}
+```
+
+Poll `GET /api/jobs/<job_id>` (`received -> transcribing -> scoring -> done | error`).
+Every transition is appended to `runs/dialler_log.jsonl`. Set `CIMET_DIALLER_TOKEN` and
+the dialler must send it as `X-Dialler-Token`. With no ASR key the webhook answers 503:
+it never falls back to a fixture and calls that a transcript.
+
+In the console, any timestamp plays the recording from that moment: gate reasons and
+the evidence panel play a 20-second clip, and transcript timestamps play on from there.
+The transcript follows the audio as it plays.
+
+---
+
+## Test calls and scoring accuracy
+
+`data/synth/` holds 12 synthetic Retailer 1 calls, each with one or two planted defects:
+wrong rate, email keyed wrong, disclaimer skipped, DMO paraphrased, authority never
+confirmed, card read aloud, dead air and talk-over, NMI mismatch, crosstalk over the
+DMO, rate in words, and two criticals on one call. **The labels in
+`data/synth/truth.json` were written by hand and the scorer never reads them.**
+
+```bash
+python tools/synth_calls.py                 # regenerate scripts, reference transcripts, labels
+python run.py --eval                        # agreement on reference transcripts, offline
+python tools/make_audio.py --dry-run        # TTS character count (~25k for all 12)
+python tools/make_audio.py                  # ElevenLabs -> data/synth/audio/<lead>.wav
+python tools/make_audio.py --engine windows # free: Windows built-in voices, no quota
+python run.py                               # start the app, then in another terminal:
+python tools/dialler_sim.py --all --eval    # push every call through the webhook, score the ASR output
+```
+
+The recordings are made to sound like a phone call, not a studio: 300-3400 Hz band,
+8 kHz mono, line noise and hum, real overlap between speakers, and real silence where
+the script has dead air. The crosstalk call gets far more noise. Clean TTS would make
+ASR, and so the accuracy numbers, look better than a real call deserves.
+
+`--eval` reports, per check and overall: agreement where the machine decided,
+Cohen's kappa against the labels, the share routed to a human, **critical false
+passes**, and at the gate **false submits** and false holds. Unsure is counted as
+neither agreement nor error: it is the system declining to guess. On the reference
+transcripts, all 12 calls agree with their labels except the crosstalk call, which goes
+to QA instead of being passed or failed. Reference transcripts are clean by
+construction, so treat that as a floor check. The number that matters is the
+`--eval asr` run on real recordings. The **Accuracy** button in the console shows both.
+
+ElevenLabs bills speech-to-text against the same character quota as TTS (about 200
+credits for a 3-minute call on the free tier), and `make_audio.py` checks the remaining
+quota and refuses up front rather than stopping half way. `--engine windows` renders
+every call for free; the robotic voices are enough to exercise ASR, diarisation and
+the scorer.
+
+To test against your own voice, record a call on a phone and push it for any lead:
+`python tools/dialler_sim.py 3613790 --file my-call.m4a`.
 
 ---
 
@@ -164,7 +299,9 @@ Each run writes a complete audit artifact to `runs/<run_id>.json`: the checklist
 version in force, the transcript SHA-256, the CRM and plan snapshots, every result,
 the gate decision with its reasons, the gate history, and the override log.
 **Download audit JSON** in the UI is that file. A team leader can reconstruct any
-decision from it without access to this process.
+decision from it without access to this process. For a run scored from a recording,
+the transcript block also carries the recording's SHA-256, the ASR engine and model,
+and how the agent was identified.
 
 ---
 
@@ -175,6 +312,9 @@ data/leads.json               3 leads with read-only CRM snapshots
 data/plans.json               plan catalogue - the reference for rate comparison
 data/checks.json              Retailer 1 checklist, versioned per check
 data/transcripts/<id>.json    diarised turns: speaker, text, start_sec, end_sec, asr_confidence
+data/synth/                   12 synthetic calls: scripts, reference transcripts, leads, truth.json
+app/asr.py                    ElevenLabs / Deepgram speech-to-text + agent/customer assignment
+app/evaluate.py               agreement, kappa, false passes against the hand labels
 app/textutil.py               normalisation, LCS matching, digit redaction
 app/llm.py                    Claude extraction + the leak guard
 app/offline_extract.py        deterministic extractor used without a key
@@ -183,8 +323,12 @@ app/scoring.py                Type A / B / C scorers
 app/gate.py                   the gate and the sample-audit draw
 app/pipeline.py               ingest -> score -> gate, and overrides
 app/server.py, app/web/       stdlib HTTP server and the single-page console
-runs/                         audit artifacts, override log, routing queue
-selftest.py                   68 behavioural assertions
+runs/                         audit artifacts, override log, routing queue, dialler log,
+                              recordings (runs/audio) and their ASR transcripts (runs/transcripts)
+tools/synth_calls.py          writes data/synth/ from hand-written scenarios
+tools/make_audio.py           ElevenLabs TTS -> phone-quality WAV per synthetic call
+tools/dialler_sim.py          pushes recordings to the webhook the way a dialler would
+selftest.py                   91 behavioural assertions
 ```
 
 ### API
@@ -196,6 +340,11 @@ POST /api/run      {lead_id}      both of the above
 POST /api/override {run_id, check_id, to_status, reason, actor}
 GET  /api/bootstrap               leads, checklist, config, preloaded run
 GET  /api/runs/<run_id>[/export]  the audit artifact
+POST /api/dialler/recording       recording in, keyed on lead_id -> 202 {job_id}
+GET  /api/jobs[/<job_id>]         dialler job status
+GET  /api/audio/<lead_id>         the recording, with Range support for seeking
+GET  /api/leads/<lead_id>/latest  newest run for a lead
+GET  /api/eval?source=fixture|asr last accuracy report; POST /api/eval {source} runs one
 ```
 
 ---
@@ -213,6 +362,10 @@ All optional, in `.env` or the environment (environment wins). See `.env.example
 | `CIMET_SAMPLE_AUDIT_RATE` | default `0.05` |
 | `CIMET_PORT` | default `8787` |
 | `CIMET_PRELOAD_LEAD` | default `3613790` |
+| `ELEVENLABS_API_KEY` / `DEEPGRAM_API_KEY` | enables the dialler webhook (ASR) |
+| `CIMET_ASR` | `auto` (default) / `elevenlabs` / `deepgram` |
+| `CIMET_ASR_MODEL` | default `scribe_v1` or `nova-3` |
+| `CIMET_DIALLER_TOKEN` | if set, required as `X-Dialler-Token` |
 
 ---
 
@@ -220,8 +373,14 @@ All optional, in `.env` or the environment (environment wins). See `.env.example
 
 Deliberate, given the scope:
 
-- Three fixture leads with local transcripts. There is no ASR step and no call-recording
-  integration — ingest attaches a transcript that already exists.
+- Mono recordings are separated into speakers by diarisation. A stereo dialler
+  recording (agent and customer on separate channels) would give certain speaker
+  labels; it is not split by channel yet.
+- The dialler job queue lives in memory. Recordings and transcripts are on disk, but
+  a job in progress when the process stops has to be pushed again.
+- The synthetic calls are short (3-5 minutes) and their scripts follow the checklist
+  wording, so they test plumbing and guardrails more than wording drift. The real
+  recording handed out on the day is the better test of wording.
 - The CRM is a read-only JSON snapshot. Submitting to a real CRM is out of scope;
   the gate decides *whether* you may submit, and stops there.
 - The deterministic Type B extractor covers the four fields in this checklist. A new

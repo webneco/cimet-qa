@@ -4,6 +4,7 @@
     python run.py                 start the app and open the browser
     python run.py --score 3613792 score one lead in the terminal and exit
     python run.py --selftest      assert the gate behaves as specified and exit
+    python run.py --eval          score the hand-labelled synthetic calls, report agreement
 
 The web app itself is standard library only. The `anthropic` package is needed
 only for LLM-backed Type B extraction; without it the app still runs end to end
@@ -90,6 +91,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(prog="run.py", description="CIMET QA Gate")
     parser.add_argument("--score", metavar="LEAD_ID", help="score one lead in the terminal and exit")
     parser.add_argument("--selftest", action="store_true", help="assert gate behaviour and exit")
+    parser.add_argument("--eval", nargs="?", const="fixture", choices=["fixture", "asr"],
+                        help="score the labelled synthetic calls and report agreement "
+                             "(fixture = reference transcripts, asr = transcripts from audio)")
     parser.add_argument("--port", type=int, help="override CIMET_PORT")
     parser.add_argument("--no-browser", action="store_true", help="do not open a browser")
     parser.add_argument("--no-llm", action="store_true", help="force the deterministic extractor")
@@ -109,6 +113,19 @@ def main() -> int:
         return run_selftest(settings)
 
     _ensure_anthropic(settings)
+
+    if args.eval:
+        from app.evaluate import evaluate, print_report
+        from app.pipeline import Pipeline
+        from app.store import Store
+
+        try:
+            report = evaluate(Pipeline(Store(), settings), args.eval)
+        except FileNotFoundError as exc:
+            print(f"  error: {exc}")
+            return 2
+        print_report(report)
+        return 1 if report["summary"]["critical_false_pass"] or report["summary"]["gate_false_submit"] else 0
 
     if args.score:
         from app.pipeline import Pipeline, PipelineError

@@ -18,3 +18,10 @@ env/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Dialler recordings and the ASR transcripts made from them
+runs/audio/
+runs/transcripts/
+
+# ElevenLabs per-line TTS cache (re-created on demand, not billed twice)
+data/synth/audio/.cache/

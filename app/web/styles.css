@@ -1,4 +1,5 @@
 :root {
+  color-scheme: dark;
   --bg: #0a0e15;
   --panel: #111825;
   --panel-2: #161f30;
@@ -54,7 +55,11 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
   box-shadow: inset 0 0 0 4px var(--panel);
 }
 
-.leadpicker { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
+.leadpicker {
+  display: flex; gap: 6px; flex: 1; min-width: 0;
+  overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; padding-bottom: 2px;
+}
+.leadpicker .leadchip { flex: none; }
 
 .leadchip {
   border: 1px solid var(--line); background: var(--panel);
@@ -416,6 +421,50 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 .toast.bad { border-color: rgba(255,96,112,.5); color: #ffd0d5; }
 
 .busy { opacity: .5; pointer-events: none; }
+.toast.link { cursor: pointer; border-color: rgba(86,162,255,.5); }
+
+/* ------------------------------------------------------------------ audio */
+
+.playerbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 14px; border-bottom: 1px solid var(--line-soft); background: var(--panel-2);
+}
+.playerbar[hidden] { display: none; }
+.playerbar audio { height: 30px; flex: 1; min-width: 0; }
+.playermeta { font-family: var(--mono); font-size: 10.5px; color: var(--dim); white-space: nowrap; }
+.turn .ts.play { color: var(--accent); cursor: pointer; }
+.turn .ts.play:hover { text-decoration: underline; }
+.turn.playing { background: rgba(53,217,153,.08); border-left-color: var(--green); }
+.leadchip .src { font-family: var(--mono); font-size: 9.5px; color: var(--dim); }
+.leadchip .src.asr { color: var(--green); }
+.badge.busy-dialler { color: var(--amber); border-color: rgba(255,180,58,.35); }
+
+/* ------------------------------------------------------------------- eval */
+
+.modal.wide { width: min(980px, 100%); max-height: calc(100vh - 40px); display: flex; flex-direction: column; }
+.evhead { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.evhead .toggle button { flex: none; padding: 7px 11px; font-size: 11px; }
+.toggle button[aria-pressed="true"][data-source] {
+  color: var(--text); border-color: var(--accent); background: rgba(86,162,255,.14);
+}
+.evbody { overflow-y: auto; margin-top: 14px; }
+.evstats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.evstat { border: 1px solid var(--line-soft); background: var(--panel-2); border-radius: 8px; padding: 9px 11px; }
+.evstat b { display: block; font-size: 20px; font-family: var(--mono); }
+.evstat span { font-size: 11px; color: var(--dim); }
+.evstat.good b { color: var(--green); }
+.evstat.bad b { color: var(--red); }
+.evtable { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 14px; }
+.evtable th { text-align: left; font-family: var(--mono); font-size: 10px; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--dim); padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.evtable td { padding: 6px 8px; border-bottom: 1px solid var(--line-soft); color: var(--muted); }
+.evtable td.num { font-family: var(--mono); text-align: right; }
+.evtable .agree { color: var(--green); }
+.evtable .escalated, .evtable .abstain { color: var(--amber); }
+.evtable .FALSE_SUBMIT, .evtable .FALSE_PASS, .evtable .false_hold, .evtable .false_fail { color: var(--red); font-weight: 600; }
+.evtable tr.clickable { cursor: pointer; }
+.evtable tr.clickable:hover td { background: var(--panel-2); }
+.evnote { font-size: 11.5px; color: var(--dim); margin: 0 0 12px; }
 
 @media (max-width: 1240px) {
   .grid { grid-template-columns: 1fr 1fr; }
@@ -429,3 +478,10 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
   .panel { max-height: none; }
   .gateband { grid-template-columns: 1fr; }
 }
+
+/* ------------------------------------------------------------- NBN evidence */
+
+.phrase .alt { color: var(--dim); font-size: 11px; }
+.mention { display: block; margin: 1px 0; }
+.mention .rt { font-family: var(--mono); font-size: 11px; color: var(--accent); cursor: pointer; margin-right: 4px; }
+.mention .rt:hover { text-decoration: underline; }
