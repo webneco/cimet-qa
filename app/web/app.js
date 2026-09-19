@@ -54,38 +54,72 @@ async function api(path, body) {
 
 /* ------------------------------------------------------------------ header */
 
-function renderLeads() {
-  $("leadPicker").innerHTML = state.boot.leads.map((lead) => `
-    <button class="leadchip" role="tab" data-lead="${esc(lead.lead_id)}"
-            aria-selected="${lead.lead_id === state.leadId}"
-            title="${esc(lead.demo_note || "")}">
-      <span class="dot ${esc(lead.audio_quality)}"></span>
-      ${esc(lead.lead_id)}
-      <span style="color:var(--dim)">${esc(lead.account_holder.split(" ")[0])}</span>
-      ${lead.has_asr_transcript ? '<span class="src asr" title="scored from a dialler recording">ASR</span>'
-        : lead.synthetic ? '<span class="src" title="synthetic test call">SYN</span>' : ""}
-    </button>`).join("");
+const leadName = (lead) => (/^\[/.test(lead.account_holder) ? "Redacted customer" : lead.account_holder);
 
-  $("leadPicker").querySelectorAll(".leadchip").forEach((chip) => {
-    chip.onclick = () => loadLead(chip.dataset.lead);
+function leadTags(lead) {
+  return [
+    lead.vertical === "nbn" ? '<span class="tagx nbn" title="NBN-QA checklist">NBN</span>' : "",
+    lead.has_asr_transcript ? '<span class="tagx asr" title="scored from a dialler recording">ASR</span>' : "",
+  ].join("");
+}
+
+function renderLeads() {
+  const current = state.boot.leads.find((l) => l.lead_id === state.leadId) || state.boot.leads[0];
+  $("leadBtn").innerHTML = `
+    <span class="dot ${esc(current.audio_quality)}"></span>
+    <span class="lid">${esc(current.lead_id)}</span>
+    <span class="lname">${esc(leadName(current))}</span>
+    ${leadTags(current)}
+    <span class="chev" aria-hidden="true">&#9662;</span>`;
+
+  const item = (lead) => `
+    <button type="button" class="leaditem" role="option" data-lead="${esc(lead.lead_id)}"
+            aria-selected="${lead.lead_id === state.leadId}">
+      <span class="dot ${esc(lead.audio_quality)}"></span>
+      <span class="lid">${esc(lead.lead_id)}</span>
+      <span class="lname">${esc(leadName(lead))}</span>
+      <span class="tags">${leadTags(lead)}</span>
+      <span class="lnote">${esc((lead.demo_note || "").replace(/^SYNTHETIC - /, ""))}</span>
+    </button>`;
+  const brief = state.boot.leads.filter((l) => !l.synthetic);
+  const synth = state.boot.leads.filter((l) => l.synthetic);
+  $("leadMenu").innerHTML =
+    `<div class="leadgroup">Brief leads</div>${brief.map(item).join("")}` +
+    (synth.length ? `<div class="leadgroup">Synthetic test calls</div>${synth.map(item).join("")}` : "");
+  $("leadMenu").querySelectorAll(".leaditem").forEach((el) => {
+    el.onclick = () => { closeLeadMenu(); loadLead(el.dataset.lead); };
   });
+}
+
+function openLeadMenu() {
+  $("leadMenu").hidden = false;
+  $("leadBtn").setAttribute("aria-expanded", "true");
+  const sel = $("leadMenu").querySelector('[aria-selected="true"]') || $("leadMenu").querySelector(".leaditem");
+  if (sel) { sel.scrollIntoView({ block: "nearest" }); sel.focus(); }
+}
+
+function closeLeadMenu(refocus = false) {
+  if ($("leadMenu").hidden) return;
+  $("leadMenu").hidden = true;
+  $("leadBtn").setAttribute("aria-expanded", "false");
+  if (refocus) $("leadBtn").focus();
 }
 
 function renderEngine() {
   const engines = state.boot.extractors;
   const badge = $("extractorBadge");
-  badge.textContent = engines.llm_available
-    ? `Type B: ${engines.model}`
-    : "Type B: deterministic";
-  badge.className = "badge " + (engines.llm_available ? "live" : "offline");
+  badge.innerHTML = engines.llm_available
+    ? `Type B <b>${esc(engines.model)}</b>`
+    : "Type B <b>deterministic</b>";
+  badge.className = "eng " + (engines.llm_available ? "live" : "offline");
   badge.title = engines.llm_available
     ? "Type B values are extracted by Claude, then compared to the CRM by deterministic code."
     : `LLM extraction is off - ${engines.llm_unavailable_reason}. Type B uses the built-in deterministic extractor instead.`;
 
   const asr = state.boot.asr || {};
   const asrBadge = $("asrBadge");
-  asrBadge.textContent = asr.provider ? `ASR: ${asr.provider}` : "ASR: off";
-  asrBadge.className = "badge " + (asr.provider ? "live" : "offline");
+  asrBadge.innerHTML = `ASR <b>${esc(asr.provider || "off")}</b>`;
+  asrBadge.className = "eng " + (asr.provider ? "live" : "offline");
   asrBadge.title = asr.provider
     ? "Dialler recordings posted to /api/dialler/recording are transcribed with speaker separation and timestamps."
     : `Dialler webhook is disabled - ${asr.unavailable_reason}. Reference transcripts still score.`;
@@ -728,6 +762,15 @@ async function boot() {
 }
 
 $("rerunBtn").onclick = () => loadLead(state.leadId);
+$("leadBtn").onclick = () => ($("leadMenu").hidden ? openLeadMenu() : closeLeadMenu(true));
+document.addEventListener("click", (e) => { if (!e.target.closest(".leadsel")) closeLeadMenu(); });
+$("leadMenu").addEventListener("keydown", (e) => {
+  const items = [...$("leadMenu").querySelectorAll(".leaditem")];
+  const i = items.indexOf(document.activeElement);
+  if (e.key === "ArrowDown") { e.preventDefault(); items[Math.min(items.length - 1, i + 1)]?.focus(); }
+  if (e.key === "ArrowUp") { e.preventDefault(); items[Math.max(0, i - 1)]?.focus(); }
+  if (e.key === "Escape") closeLeadMenu(true);
+});
 $("player").addEventListener("timeupdate", followPlayback);
 $("evalBtn").onclick = openEval;
 $("evClose").onclick = () => { $("evalModal").hidden = true; };

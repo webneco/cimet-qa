@@ -366,6 +366,7 @@ def make_handler(store: Store, pipeline: Pipeline, settings, preloader: _Preload
                         "account_holder": lead["crm"]["account_holder_name"],
                         "demo_note": lead.get("demo_note"),
                         "synthetic": bool(lead.get("synthetic")),
+                        "vertical": lead.get("vertical", "energy"),
                         "has_audio": store.audio_for(lead["lead_id"]) is not None,
                         "has_asr_transcript": store.asr_transcript_path(lead["lead_id"]).exists(),
                     }

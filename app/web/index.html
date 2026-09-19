@@ -18,12 +18,18 @@
     </div>
   </div>
 
-  <div class="leadpicker" id="leadPicker" role="tablist" aria-label="Leads"></div>
+  <div class="leadsel">
+    <button type="button" class="leadbtn" id="leadBtn" aria-haspopup="listbox" aria-expanded="false"
+            aria-controls="leadMenu" title="Choose a lead"></button>
+    <div class="leadmenu" id="leadMenu" role="listbox" aria-label="Leads" hidden></div>
+  </div>
 
   <div class="topmeta">
     <span class="badge" id="diallerBadge" hidden></span>
-    <span class="badge" id="asrBadge" title="Speech-to-text used for dialler recordings">ASR</span>
-    <span class="badge" id="extractorBadge" title="Which engine scored Type B checks">engine</span>
+    <div class="engine" aria-label="Scoring engines">
+      <span class="eng" id="asrBadge" title="Speech-to-text used for dialler recordings">ASR</span>
+      <span class="eng" id="extractorBadge" title="Which engine scored Type B checks">engine</span>
+    </div>
     <button class="btn ghost" id="evalBtn" title="Agreement with hand-labelled calls">Accuracy</button>
     <button class="btn ghost" id="rerunBtn" title="Re-ingest the transcript and score it again">Re-run</button>
   </div>
