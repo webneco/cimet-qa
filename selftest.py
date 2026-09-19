@@ -19,6 +19,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from app import asr, gate, llm
+from app import evaluate as evaluate_mod
+from app import pipeline as pipeline_mod
 from app import store as store_mod
 from app.compare import compare
 from app.config import ROOT, load_settings
@@ -70,15 +72,24 @@ def by_id(run: dict, check_id: str) -> dict:
 
 
 def run_selftest(settings=None) -> int:
-    """Runs against a scratch copy of the recording and ASR folders, so it never reads
-    or deletes a real dialler recording, and a real one never changes what it scores."""
-    real_dirs = store_mod.AUDIO_DIR, store_mod.ASR_DIR
+    """Runs entirely in a scratch folder. The self-test scores leads, overrides them
+    (3613790 is deliberately released to SUBMITTED) and fakes an ASR recording, so none
+    of that may ever land in the real runs/ folder: the console shows each lead's latest
+    saved run, and a test run there would be shown as if it were real."""
     scratch = Path(tempfile.mkdtemp(prefix="cimet-selftest-"))
-    store_mod.AUDIO_DIR, store_mod.ASR_DIR = scratch / "audio", scratch / "transcripts"
+    redirected = [
+        (store_mod, "RUNS_DIR", scratch), (pipeline_mod, "RUNS_DIR", scratch),
+        (evaluate_mod, "RUNS_DIR", scratch),
+        (store_mod, "AUDIO_DIR", scratch / "audio"), (store_mod, "ASR_DIR", scratch / "transcripts"),
+    ]
+    saved = [(mod, name, getattr(mod, name)) for mod, name, _ in redirected]
+    for mod, name, path in redirected:
+        setattr(mod, name, path)
     try:
         return _run_selftest(settings)
     finally:
-        store_mod.AUDIO_DIR, store_mod.ASR_DIR = real_dirs
+        for mod, name, value in saved:
+            setattr(mod, name, value)
         shutil.rmtree(scratch, ignore_errors=True)
 
 
