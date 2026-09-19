@@ -1,8 +1,9 @@
 # CIMET QA Gate
 
-Scores an Energy sales call against the Retailer 1 compliance checklist **before**
-the lead is submitted to the CRM, and decides one of three things: **HELD**, **QA**,
-or **SUBMITTED**.
+Scores a sales call against its retailer's compliance checklist **before** the lead
+is submitted to the CRM, and decides one of three things: **HELD**, **QA**, or
+**SUBMITTED**. Two checklists ship today: the Retailer 1 energy checklist, and the
+NBN-QA pack for internet sales (lead 3613793, the official CIMET artefact).
 
 Local, one command, no Docker, no auth, no database. External services are optional:
 the Anthropic API for Type B extraction, and ElevenLabs or Deepgram for turning dialler
@@ -28,17 +29,45 @@ python run.py               # installs `anthropic` on first run if the key is se
 ```
 
 Without a key the app still runs every check — Type B falls back to a built-in
-deterministic extractor, the badge in the top right says so, and every result
-records which extractor produced it. Nothing silently pretends to be an LLM.
+deterministic extractor, the engine status in the top bar says so, and every result
+records which extractor produced it. If the LLM is configured but a call fails, the
+result records that it fell back and why. Nothing silently pretends to be an LLM.
 
 Other entry points:
 
 ```bash
-python run.py --selftest          # 91 behavioural assertions, offline, ~1s
+python run.py --selftest          # 93 behavioural assertions, offline, ~1s
 python run.py --eval              # accuracy against 12 hand-labelled calls
 python run.py --score 3613792     # score one lead in the terminal
 python run.py --no-llm            # force the deterministic extractor
 ```
+
+---
+
+## The console
+
+One page, three columns under a status band.
+
+- **Top bar.** The lead picker is a single button showing the current lead. It opens
+  a list in two groups - **Brief leads** (3613790-93) and **Synthetic test calls** -
+  with the customer name and a one-line note on what each call tests. **NBN** marks a
+  lead scored against the NBN-QA pack; **ASR** marks one scored from a dialler
+  recording. Redacted customers show as "Redacted customer". Arrow keys move through
+  the list, Escape closes it. To the right: a one-line engine status (speech-to-text
+  provider and the Type B extractor, each with a green or amber dot), **Accuracy**
+  and **Re-run**. While the dialler is sending a recording, a status badge appears
+  there too.
+- **Status band.** HELD / QA / SUBMITTED, the queue it was routed to, each reason with
+  a clickable timestamp, the counters, the pipeline trace, and **Download audit JSON**.
+- **Checklist** (left). Every check with its status, confidence, timestamp and whether
+  it blocks the sale. Click a row for the evidence: the quote, the matched phrases,
+  the spoken value against the reference, every other mention of the value (including
+  figures the agent read off the customer's screen), the guardrails that fired, and
+  **Override**.
+- **Transcript** (centre). With a recording, a player sits on top; clicking any
+  timestamp plays from there, and the line being spoken is highlighted.
+- **CRM record, plan sold, override log** (right). Read-only. The panel scrolls as one
+  column, so a long plan never squeezes the override log.
 
 ---
 
@@ -64,14 +93,16 @@ log on the right with who, why, the machine's original verdict, and the gate
 transition. The CRM email is still `j.smith@gmial.com` — this app never writes to
 the CRM.
 
-**Click 3 — lead 3613792** (the messy-audio call).
+**Click 3 — pick 3613792 from the lead picker** (the messy-audio call).
 Crosstalk, `[inaudible]`, a dropped line. The status is **QA**, not HELD: the DMO
 statement, the rate and the email are all **unsure**, each with the guardrail that
 downgraded them. Nothing was failed because it could not be heard. The checks that
 *were* audible still passed.
 
 Lead **3613791** is the clean control: every critical check passes and it goes
-**SUBMITTED**.
+**SUBMITTED**. Lead **3613793** is the official NBN call: **QA**. Open *Total minimum
+cost* to see the agent's $42.90 next to the $317 the agent read off the customer's
+screen three times.
 
 ---
 
@@ -308,16 +339,17 @@ and how the agent was identified.
 ## Layout
 
 ```
-data/leads.json               3 leads with read-only CRM snapshots
-data/plans.json               plan catalogue - the reference for rate comparison
-data/checks.json              Retailer 1 checklist, versioned per check
+data/leads.json               4 brief leads with read-only CRM snapshots (3613793 carries its plan inline)
+data/plans.json               energy plan catalogue - the reference for rate comparison
+data/checks.json              Retailer 1 checklist (default) + extra_packs: NBN-QA; versioned per check
 data/transcripts/<id>.json    diarised turns: speaker, text, start_sec, end_sec, asr_confidence
 data/synth/                   12 synthetic calls: scripts, reference transcripts, leads, truth.json
 app/asr.py                    ElevenLabs / Deepgram speech-to-text + agent/customer assignment
 app/evaluate.py               agreement, kappa, false passes against the hand labels
 app/textutil.py               normalisation, LCS matching, digit redaction
 app/llm.py                    Claude extraction + the leak guard
-app/offline_extract.py        deterministic extractor used without a key
+app/offline_extract.py        deterministic extractor used without a key (energy fields)
+app/offline_nbn.py            deterministic extractor for the NBN-QA fields
 app/compare.py                the comparators - the only code that sees both sides
 app/scoring.py                Type A / B / C scorers
 app/gate.py                   the gate and the sample-audit draw
@@ -328,7 +360,8 @@ runs/                         audit artifacts, override log, routing queue, dial
 tools/synth_calls.py          writes data/synth/ from hand-written scenarios
 tools/make_audio.py           ElevenLabs TTS -> phone-quality WAV per synthetic call
 tools/dialler_sim.py          pushes recordings to the webhook the way a dialler would
-selftest.py                   91 behavioural assertions
+tools/build_3613793.py        builds 3613793's transcript from the redacted PDF, row for row
+selftest.py                   93 behavioural assertions
 ```
 
 ### API
@@ -357,7 +390,7 @@ All optional, in `.env` or the environment (environment wins). See `.env.example
 |---|---|
 | `ANTHROPIC_API_KEY` | enables LLM Type B extraction |
 | `CIMET_LLM` | `auto` (default) / `on` / `off` |
-| `CIMET_MODEL` | default `claude-opus-5` |
+| `CIMET_MODEL` | default `claude-opus-5`. The extractor sends an `effort` setting; a model that rejects it makes every Type B check fall back to the deterministic extractor (recorded on each result) |
 | `CIMET_CONFIDENCE_FLOOR` | critical confidence floor, default `0.6` |
 | `CIMET_SAMPLE_AUDIT_RATE` | default `0.05` |
 | `CIMET_PORT` | default `8787` |
@@ -383,8 +416,11 @@ Deliberate, given the scope:
   recording handed out on the day is the better test of wording.
 - The CRM is a read-only JSON snapshot. Submitting to a real CRM is out of scope;
   the gate decides *whether* you may submit, and stops there.
-- The deterministic Type B extractor covers the four fields in this checklist. A new
-  Type B check needs either a key, or a handler in `app/offline_extract.py`.
+- The deterministic Type B extractor covers the fields in the two shipped packs. A new
+  Type B check needs either a key, or a handler in `app/offline_extract.py` /
+  `app/offline_nbn.py`.
+- 3613793 comes from a PDF transcript with no audio, so its timestamps are estimated
+  from turn order, and there is nothing to play.
 - Sampling is seeded per lead so demos replay identically. In production it should be
   seeded per run.
 - No auth, binds to `127.0.0.1`. Do not expose it.
