@@ -18,6 +18,7 @@ env/
 .idea/
 .DS_Store
 Thumbs.db
+~$*
 
 # Dialler recordings and the ASR transcripts made from them
 runs/audio/
