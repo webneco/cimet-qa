@@ -46,28 +46,43 @@ python run.py --no-llm            # force the deterministic extractor
 
 ## The console
 
-One page, three columns under a status band.
+Review-first: the verdict leads, the checks that need a human come before the ones
+that passed, and the call is a timeline you can click. Plain HTML, CSS and JavaScript
+served by the Python server - no build step, no framework.
 
-- **Top bar.** The lead picker is a single button showing the current lead. It opens
-  a list in two groups - **Brief leads** (3613790-93) and **Synthetic test calls** -
-  with the customer name and a one-line note on what each call tests. **NBN** marks a
-  lead scored against the NBN-QA pack; **ASR** marks one scored from a dialler
-  recording. Redacted customers show as "Redacted customer". Arrow keys move through
-  the list, Escape closes it. To the right: a one-line engine status (speech-to-text
-  provider and the Type B extractor, each with a green or amber dot), **Accuracy**
-  and **Re-run**. While the dialler is sending a recording, a status badge appears
-  there too.
-- **Status band.** HELD / QA / SUBMITTED, the queue it was routed to, each reason with
-  a clickable timestamp, the counters, the pipeline trace, and **Download audit JSON**.
-- **Checklist** (left). Every check with its status, confidence, timestamp and whether
-  it blocks the sale. Click a row for the evidence: the quote, the matched phrases,
-  the spoken value against the reference, every other mention of the value (including
-  figures the agent read off the customer's screen), the guardrails that fired, and
-  **Override**.
-- **Transcript** (centre). With a recording, a player sits on top; clicking any
-  timestamp plays from there, and the line being spoken is highlighted.
-- **CRM record, plan sold, override log** (right). Read-only. The panel scrolls as one
-  column, so a long plan never squeezes the override log.
+- **Top bar.** One lead picker button. It opens a list in two groups - **Brief leads**
+  (3613790-93) and **Synthetic test calls** - with the customer name and a one-line
+  note on what each call tests. The dot before each lead is its latest verdict - red
+  HELD, amber QA, green SUBMITTED. On startup, any lead that has never been scored is
+  scored once in the background so every dot has a colour (runs are saved, so later
+  startups reuse them; `CIMET_PRESCORE=0` turns this off, leaving a hollow ring until
+  the lead is opened).
+  **NBN** marks a lead scored against the NBN-QA pack, **ASR** one scored from a
+  dialler recording, **NOISY** a call with poor audio; redacted customers show as
+  "Redacted customer". Arrow keys move through the list, Escape closes it. To the right: a quiet
+  engine status (speech-to-text provider and Type B extractor, each with a green or
+  amber dot), **Accuracy** and **Re-run**, and a badge while the dialler is sending a
+  recording.
+- **Verdict.** HELD / QA / SUBMITTED with a plain-English summary - which critical
+  checks failed or need a human, and where the call was routed - plus Passed, Failed,
+  Unsure and weighted score.
+- **Checks** (left).
+  - *Needs attention* - every failed or unsure check as a card: **said vs expected**
+    side by side (28.6 vs 31.9, gmail vs gmial), or the script wording that was
+    missing; the reason in one line; the timestamp; **Play 20s** and **Override**.
+    Click a card for the full evidence: the quote, matched phrases, every other
+    mention of the value (including figures the agent read off the customer's
+    screen), the guardrails that fired, the extractor and the check version.
+  - *Passed* and *Coaching notes* are folded away; click a row to see its evidence.
+- **The call** (right).
+  - *Call timeline* - agent and customer speech as two lanes, a pin for every check
+    (red fail, amber unsure, green pass) and hatched dead air. Click a pin to open the
+    check and hear it; click anywhere else to jump there. With a recording, a playhead
+    follows the audio.
+  - *Tabs* - **Transcript** (the line being spoken is highlighted; any timestamp plays
+    from there), **CRM & plan** (read-only; a field that failed is flagged), **Audit**
+    (run id, checklist version, extractor, confidence floor, evidence coverage,
+    transcript checksum, pipeline trace, **Download audit JSON**) and **Overrides**.
 
 ---
 
@@ -76,21 +91,21 @@ One page, three columns under a status band.
 The first screen is already the worked example from the brief: lead 3613790,
 status **HELD**.
 
-**Click 1 — the `rates_and_charges` row.**
-The transcript jumps to **14:02** and highlights the line. The evidence panel shows
-the agent said **28.6 c/kWh**, the plan sold is **31.9 c/kWh**, a 3.3c gap. Under it,
-`email_captured` failed at **22:10** — the customer said `j.smith@gmail.com`, the CRM
-holds `j.smith@gmial.com`. Neither of those is a judgement call you have to trust:
+**Click 1 — the peak-rate card, first under *Needs attention*.**
+It already shows **said 28.6 ≠ expected 31.9**; click its **14:02** and the
+transcript jumps to the line and highlights it, and the red pin on the timeline is
+ringed. Under it, the email card shows `j.smith@gmail.com` said against
+`j.smith@gmial.com` in the CRM (22:10). Neither of those is a judgement call you have to trust:
 both carry a quote, a timestamp, the reference value, and the comparison that produced
 the verdict.
 
-**Click 2 — Override to PASS on that row.**
+**Click 2 — Override on that card.**
 Saving is refused until you write a reason, in the UI and again at the API. Save it
 and the gate re-runs live:
-the status chip stays **HELD**, because the email failure is still open. Clear that
+the verdict stays **HELD**, because the email failure is still open. Clear that
 one too and it flips to **SUBMITTED**. Both entries land in the append-only override
-log on the right with who, why, the machine's original verdict, and the gate
-transition. The CRM email is still `j.smith@gmial.com` — this app never writes to
+log (the **Overrides** tab) with who, why, the machine's original verdict, and the
+gate transition. The CRM email is still `j.smith@gmial.com` — this app never writes to
 the CRM.
 
 **Click 3 — pick 3613792 from the lead picker** (the messy-audio call).
@@ -329,7 +344,7 @@ reference value and its source, the comparison, and whether the quote was ground
 Each run writes a complete audit artifact to `runs/<run_id>.json`: the checklist
 version in force, the transcript SHA-256, the CRM and plan snapshots, every result,
 the gate decision with its reasons, the gate history, and the override log.
-**Download audit JSON** in the UI is that file. A team leader can reconstruct any
+**Download audit JSON** (the **Audit** tab) is that file. A team leader can reconstruct any
 decision from it without access to this process. For a run scored from a recording,
 the transcript block also carries the recording's SHA-256, the ASR engine and model,
 and how the agent was identified.
@@ -395,6 +410,7 @@ All optional, in `.env` or the environment (environment wins). See `.env.example
 | `CIMET_SAMPLE_AUDIT_RATE` | default `0.05` |
 | `CIMET_PORT` | default `8787` |
 | `CIMET_PRELOAD_LEAD` | default `3613790` |
+| `CIMET_PRESCORE` | default on: score never-scored leads once at startup, for the lead picker |
 | `ELEVENLABS_API_KEY` / `DEEPGRAM_API_KEY` | enables the dialler webhook (ASR) |
 | `CIMET_ASR` | `auto` (default) / `elevenlabs` / `deepgram` |
 | `CIMET_ASR_MODEL` | default `scribe_v1` or `nova-3` |

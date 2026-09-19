@@ -9,12 +9,13 @@
 </head>
 <body>
 
+<!-- ------------------------------------------------------------------- top bar -->
 <header class="topbar">
   <div class="brand">
     <span class="mark" aria-hidden="true"></span>
     <div>
       <h1>CIMET QA Gate</h1>
-      <p id="brandSub">pre-submit quality gate for Energy sales</p>
+      <p id="brandSub">pre-submit quality gate</p>
     </div>
   </div>
 
@@ -35,81 +36,94 @@
   </div>
 </header>
 
-<section class="gateband" id="gateBand">
-  <div class="chipwrap">
-    <div class="statuschip" id="statusChip"><span id="statusText">LOADING</span></div>
-    <div class="chipsub" id="chipSub"></div>
+<!-- ------------------------------------------------------------------- verdict -->
+<section class="verdict" id="verdict" aria-live="polite">
+  <div class="statuschip" id="statusChip"><span id="statusText">LOADING</span></div>
+  <div class="vtext">
+    <h2 id="verdictTitle">Scoring the call&hellip;</h2>
+    <p id="chipSub"></p>
   </div>
-
-  <div class="gatedetail">
-    <div class="reasons" id="gateReasons"></div>
-    <div class="counters" id="gateCounters"></div>
-  </div>
-
-  <div class="gateside">
-    <div class="trace" id="pipelineTrace"></div>
-    <a class="btn ghost small" id="exportBtn" href="#" download>Download audit JSON</a>
-  </div>
+  <div class="vstats" id="gateCounters"></div>
 </section>
 
-<main class="grid">
-  <!-- ------------------------------------------------------------- checks -->
-  <section class="panel checks">
-    <div class="panelhead">
-      <h2>Checklist</h2>
-      <span class="panelmeta" id="checklistMeta"></span>
+<!-- ------------------------------------------------------------------ workspace -->
+<main class="workspace">
+  <!-- checks -->
+  <section class="col checks" aria-label="Checks">
+    <div class="colhead">
+      <h2>Checks</h2>
+      <span class="meta" id="checklistMeta"></span>
     </div>
-    <div class="tablehead">
-      <span class="c-status">Status</span>
-      <span class="c-name">Check</span>
-      <span class="c-conf">Confidence</span>
-      <span class="c-at">At</span>
-      <span class="c-block">Blocks</span>
-    </div>
-    <div id="checkList" class="checkrows"></div>
+    <div class="colscroll" id="checkList"></div>
     <details class="legend">
       <summary>How the three check types are scored</summary>
       <div id="typeLegend"></div>
     </details>
   </section>
 
-  <!-- --------------------------------------------------------- transcript -->
-  <section class="panel transcript">
-    <div class="panelhead">
-      <h2>Transcript</h2>
-      <span class="panelmeta" id="transcriptMeta"></span>
+  <!-- the call -->
+  <section class="col call" aria-label="The call">
+    <div class="timeline" id="timeline">
+      <div class="tlhead">
+        <h2>Call timeline</h2>
+        <span class="meta" id="transcriptMeta"></span>
+      </div>
+      <div class="tltrack" id="tlTrack" title="Click to jump to that moment">
+        <div class="lane agent" id="laneAgent"></div>
+        <div class="lane customer" id="laneCustomer"></div>
+        <div class="tlmarks" id="tlMarks"></div>
+        <div class="playhead" id="playhead" hidden></div>
+      </div>
+      <div class="tlaxis" id="tlAxis"></div>
+      <div class="tllegend">
+        <span><i class="k agent"></i>agent</span><span><i class="k customer"></i>customer</span>
+        <span><i class="k fail"></i>fail</span><span><i class="k unsure"></i>unsure</span>
+        <span><i class="k pass"></i>pass</span><span><i class="k gap"></i>dead air</span>
+      </div>
+      <div class="playerbar" id="playerBar" hidden>
+        <audio id="player" controls preload="auto"></audio>
+        <span class="playermeta" id="playerMeta"></span>
+      </div>
     </div>
-    <div class="redactbar" id="redactBar"></div>
-    <div class="playerbar" id="playerBar" hidden>
-      <audio id="player" controls preload="auto"></audio>
-      <span class="playermeta" id="playerMeta"></span>
-    </div>
-    <div id="turnList" class="turns"></div>
-  </section>
 
-  <!-- ---------------------------------------------------------- crm + log -->
-  <section class="panel side">
-    <div class="panelhead">
-      <h2>CRM record</h2>
-      <span class="lockpill" title="This app never writes to the CRM">read-only</span>
-    </div>
-    <dl class="crm" id="crmList"></dl>
+    <nav class="tabs" role="tablist" aria-label="Call details">
+      <button role="tab" class="tab" data-tab="transcript" aria-selected="true">Transcript</button>
+      <button role="tab" class="tab" data-tab="record" aria-selected="false">CRM &amp; plan</button>
+      <button role="tab" class="tab" data-tab="audit" aria-selected="false">Audit</button>
+      <button role="tab" class="tab" data-tab="log" aria-selected="false">Overrides <span class="count" id="overrideMeta">0</span></button>
+    </nav>
 
-    <div class="panelhead second">
-      <h2>Plan sold</h2>
-      <span class="panelmeta" id="planMeta"></span>
+    <div class="tabpanel colscroll" id="tab-transcript" role="tabpanel">
+      <div class="redactbar" id="redactBar"></div>
+      <div id="turnList" class="turns"></div>
     </div>
-    <dl class="crm" id="planList"></dl>
 
-    <div class="panelhead second">
-      <h2>Override log</h2>
-      <span class="panelmeta" id="overrideMeta">0 entries</span>
+    <div class="tabpanel colscroll" id="tab-record" role="tabpanel" hidden>
+      <div class="recgrid">
+        <div class="reccard">
+          <div class="rechead"><h3>CRM record</h3><span class="lockpill" title="This app never writes to the CRM">read-only</span></div>
+          <dl class="kvlist" id="crmList"></dl>
+        </div>
+        <div class="reccard">
+          <div class="rechead"><h3>Plan sold</h3><span class="meta" id="planMeta"></span></div>
+          <dl class="kvlist" id="planList"></dl>
+        </div>
+      </div>
     </div>
-    <div id="overrideLog" class="overridelog"></div>
+
+    <div class="tabpanel colscroll" id="tab-audit" role="tabpanel" hidden>
+      <div class="auditgrid" id="auditPanel"></div>
+      <div class="trace" id="pipelineTrace"></div>
+      <a class="btn" id="exportBtn" href="#" download>Download audit JSON</a>
+    </div>
+
+    <div class="tabpanel colscroll" id="tab-log" role="tabpanel" hidden>
+      <div id="overrideLog" class="overridelog"></div>
+    </div>
   </section>
 </main>
 
-<!-- ----------------------------------------------------------- override modal -->
+<!-- ------------------------------------------------------------ override modal -->
 <div class="modalwrap" id="overrideModal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="ovTitle">
     <h3 id="ovTitle">Override check</h3>

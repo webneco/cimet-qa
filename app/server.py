@@ -131,6 +131,36 @@ class _Preloader:
         self.done.wait(timeout)
 
 
+class _Prescorer:
+    """Scores, once, every lead that has never been scored, so the lead picker can show
+    a verdict for each without anyone opening it. Runs are saved, so later startups
+    reuse them and nothing is scored twice. Off with CIMET_PRESCORE=0."""
+
+    def __init__(self, pipeline: Pipeline, after: threading.Event) -> None:
+        self.pipeline = pipeline
+        self.after = after
+        self.pending: list[str] = []
+        self.thread = threading.Thread(target=self._work, name="prescore", daemon=True)
+
+    def start(self) -> None:
+        store = self.pipeline.store
+        self.pending = [lead["lead_id"] for lead in store.leads_doc["leads"]
+                        if store.latest_run_for(lead["lead_id"]) is None]
+        if self.pending:
+            print(f"  Scoring {len(self.pending)} unscored lead(s) in the background for the lead picker")
+            self.thread.start()
+
+    def _work(self) -> None:
+        self.after.wait(300)  # let the first screen load first
+        for lead_id in list(self.pending):
+            try:
+                self.pipeline.run_lead(lead_id)
+            except Exception as exc:  # one bad lead must not stop the rest
+                print(f"  prescore {lead_id} failed: {type(exc).__name__}: {exc}")
+            finally:
+                self.pending.remove(lead_id)
+
+
 def make_handler(store: Store, pipeline: Pipeline, settings, preloader: _Preloader, jobs: DiallerJobs):
     class Handler(BaseHTTPRequestHandler):
         server_version = f"CIMET-QA-Gate/{__version__}"
@@ -200,6 +230,10 @@ def make_handler(store: Store, pipeline: Pipeline, settings, preloader: _Preload
                     return self._bootstrap()
                 if route == "/api/override-log":
                     return self._json({"entries": store.read_override_log()})
+                if route == "/api/leads/status":
+                    return self._json({"leads": {
+                        lead["lead_id"]: self._last_gate(lead["lead_id"]) for lead in store.leads_doc["leads"]
+                    }})
                 if route == "/api/jobs":
                     return self._json({"jobs": jobs.recent()})
                 if route == "/api/eval":
@@ -333,6 +367,14 @@ def make_handler(store: Store, pipeline: Pipeline, settings, preloader: _Preload
                 return self._error(404, _msg(exc))
             return self._json({**job, "poll": f"/api/jobs/{job['job_id']}"}, 202)
 
+        def _last_gate(self, lead_id: str):
+            """Gate of the newest scored run for a lead, so the picker can show it."""
+            try:
+                run = store.latest_run_for(lead_id)
+            except Exception:
+                return None
+            return run["gate"]["status"] if run else None
+
         def _bootstrap(self):
             preloader.wait(timeout=settings.llm_timeout_sec * 2 + 20)
             preloaded = None
@@ -369,6 +411,7 @@ def make_handler(store: Store, pipeline: Pipeline, settings, preloader: _Preload
                         "vertical": lead.get("vertical", "energy"),
                         "has_audio": store.audio_for(lead["lead_id"]) is not None,
                         "has_asr_transcript": store.asr_transcript_path(lead["lead_id"]).exists(),
+                        "last_gate": self._last_gate(lead["lead_id"]),
                     }
                     for lead in store.leads_doc["leads"]
                 ],
@@ -444,6 +487,8 @@ def serve(settings) -> None:
     pipeline = Pipeline(store, settings)
     preloader = _Preloader(pipeline, settings.preload_lead_id)
     preloader.start()
+    if settings.prescore:
+        _Prescorer(pipeline, preloader.done).start()
 
     jobs = DiallerJobs(pipeline)
     handler = make_handler(store, pipeline, settings, preloader, jobs)

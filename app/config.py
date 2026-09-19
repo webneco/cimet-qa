@@ -76,6 +76,7 @@ class Settings:
     sample_audit_salt: str = "cimet-qa-gate-2026"
     confidence_floor_critical: float = 0.6
     preload_lead_id: str = "3613790"
+    prescore: bool = True
     redact_digit_run: int = 13
     asr_provider: str = "auto"  # auto | elevenlabs | deepgram
     elevenlabs_api_key: str = ""
@@ -131,6 +132,7 @@ def load_settings() -> Settings:
         sample_audit_salt=os.environ.get("CIMET_SAMPLE_SALT", "").strip() or "cimet-qa-gate-2026",
         confidence_floor_critical=_float("CIMET_CONFIDENCE_FLOOR", 0.6),
         preload_lead_id=os.environ.get("CIMET_PRELOAD_LEAD", "").strip() or "3613790",
+        prescore=_bool("CIMET_PRESCORE", True),
         asr_provider=(os.environ.get("CIMET_ASR", "").strip().lower() or "auto"),
         elevenlabs_api_key=os.environ.get("ELEVENLABS_API_KEY", "").strip(),
         deepgram_api_key=os.environ.get("DEEPGRAM_API_KEY", "").strip(),
