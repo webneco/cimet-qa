@@ -6,6 +6,7 @@
     python tools/make_audio.py --only 3613802 3613810    some calls
     python tools/make_audio.py --engine windows          free, offline: Windows built-in voices
     python tools/make_audio.py --list-voices             ElevenLabs voice ids on your account
+    python tools/make_audio.py --sync-only               match reference transcripts to existing audio
 
 Two engines. ElevenLabs sounds like people and needs ELEVENLABS_API_KEY; it checks
 your remaining character quota first and refuses rather than stopping half way.
@@ -240,7 +241,31 @@ def render(lead_id: str, key: str, model: str, pool: list[str]) -> dict:
         "note": "Ground-truth line timings in the rendered audio - use to measure ASR timestamp drift.",
         "lines": timing,
     }, indent=2), encoding="utf-8")
+    sync_transcript(lead_id)
     return {"lead_id": lead_id, "seconds": round(clock, 1), "path": path}
+
+
+def sync_transcript(lead_id: str) -> bool:
+    """Give the reference transcript the rendered audio's real line timings.
+
+    synth_calls.py can only estimate timings from word counts; once audio exists, the
+    transcript must match it, or clicking 01:31 would play the audio at a different line.
+    """
+    timing_path = AUDIO / f"{lead_id}.timing.json"
+    transcript_path = SYNTH / "transcripts" / f"{lead_id}.json"
+    if not timing_path.exists() or not transcript_path.exists():
+        return False
+    lines = json.loads(timing_path.read_text(encoding="utf-8"))["lines"]
+    doc = json.loads(transcript_path.read_text(encoding="utf-8"))
+    if len(lines) != len(doc["turns"]):
+        print(f"  {lead_id}: transcript and audio have different line counts - regenerate both")
+        return False
+    for turn, line in zip(doc["turns"], lines):
+        turn["start_sec"], turn["end_sec"] = line["start_sec"], line["end_sec"]
+    doc["duration_sec"] = round(lines[-1]["end_sec"] + 1, 1)
+    doc["asr_engine"] = "synthetic-reference (line timings taken from the rendered audio, no ASR)"
+    transcript_path.write_text(json.dumps(doc, indent=2), encoding="utf-8")
+    return True
 
 
 def main() -> int:
@@ -250,7 +275,15 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true", help="print the character count and stop")
     parser.add_argument("--list-voices", action="store_true", help="list voices on your account")
     parser.add_argument("--engine", choices=["elevenlabs", "windows"], default="elevenlabs")
+    parser.add_argument("--sync-only", action="store_true",
+                        help="copy existing audio timings into the reference transcripts; no audio is made")
     args = parser.parse_args()
+
+    if args.sync_only:
+        done = [p.stem.split(".")[0] for p in sorted(AUDIO.glob("*.timing.json"))
+                if (not args.only or p.stem.split(".")[0] in args.only) and sync_transcript(p.stem.split(".")[0])]
+        print(f"  synced {len(done)} transcript(s) to their audio: {', '.join(done)}")
+        return 0
 
     key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
     model = os.environ.get("ELEVENLABS_TTS_MODEL", "").strip() or "eleven_multilingual_v2"

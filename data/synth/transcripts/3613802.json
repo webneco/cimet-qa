@@ -2,9 +2,9 @@
   "lead_id": "3613802",
   "call_id": "CALL-3613802-01",
   "recorded_at": "2026-09-11T10:07:00+10:00",
-  "duration_sec": 160.7,
+  "duration_sec": 174.7,
   "audio_quality": "clean",
-  "asr_engine": "synthetic-reference (script timing estimate, no ASR)",
+  "asr_engine": "synthetic-reference (line timings taken from the rendered audio, no ASR)",
   "asr_version": "synth-1",
   "channels": "diarised",
   "turns": [
@@ -14,7 +14,7 @@
       "speaker_name": "Daniel R.",
       "text": "Hi, you're speaking with Daniel from Retailer One. Before we go any further I need to let you know that this call is being recorded for quality assurance and training purposes. Do I have your consent to continue on a recorded line?",
       "start_sec": 0.3,
-      "end_sec": 15.9,
+      "end_sec": 15.29,
       "asr_confidence": 0.95
     },
     {
@@ -22,8 +22,8 @@
       "speaker": "customer",
       "speaker_name": "Aisha R.",
       "text": "Yeah, that's fine, go ahead.",
-      "start_sec": 16.6,
-      "end_sec": 18.7,
+      "start_sec": 15.99,
+      "end_sec": 19.21,
       "asr_confidence": 0.95
     },
     {
@@ -31,8 +31,8 @@
       "speaker": "agent",
       "speaker_name": "Daniel R.",
       "text": "Thank you. Can I just confirm I'm speaking with the account holder, Aisha Rahman, and that you're authorised to make changes to this account?",
-      "start_sec": 19.4,
-      "end_sec": 28.3,
+      "start_sec": 19.91,
+      "end_sec": 28.91,
       "asr_confidence": 0.95
     },
     {
@@ -40,8 +40,8 @@
       "speaker": "customer",
       "speaker_name": "Aisha R.",
       "text": "Yes, that's me. Aisha Rahman, the account's in my name.",
-      "start_sec": 29.0,
-      "end_sec": 33.2,
+      "start_sec": 29.61,
+      "end_sec": 35.16,
       "asr_confidence": 0.95
     },
     {
@@ -49,8 +49,8 @@
       "speaker": "agent",
       "speaker_name": "Daniel R.",
       "text": "Perfect, thanks Aisha. And the supply address is 3 Bay Road, Sandringham, Victoria, three one nine one?",
-      "start_sec": 33.9,
-      "end_sec": 40.2,
+      "start_sec": 35.87,
+      "end_sec": 45.09,
       "asr_confidence": 0.95
     },
     {
@@ -58,8 +58,8 @@
       "speaker": "customer",
       "speaker_name": "Aisha R.",
       "text": "That's the one.",
-      "start_sec": 40.9,
-      "end_sec": 42.1,
+      "start_sec": 45.8,
+      "end_sec": 47.38,
       "asr_confidence": 0.95
     },
     {
@@ -67,8 +67,8 @@
       "speaker": "agent",
       "speaker_name": "Daniel R.",
       "text": "Great. So this is about the Saver Flex plan. Before any numbers there's a short statement I'm required to read to you in full.",
-      "start_sec": 42.8,
-      "end_sec": 51.7,
+      "start_sec": 48.08,
+      "end_sec": 57.31,
       "asr_confidence": 0.95
     },
     {
@@ -76,8 +76,8 @@
       "speaker": "customer",
       "speaker_name": "Aisha R.",
       "text": "No worries.",
-      "start_sec": 52.4,
-      "end_sec": 53.6,
+      "start_sec": 58.01,
+      "end_sec": 59.62,
       "asr_confidence": 0.95
     },
     {
@@ -85,8 +85,8 @@
       "speaker": "agent",
       "speaker_name": "Daniel R.",
       "text": "The Default Market Offer is the reference price set by the Australian Energy Regulator. The estimated annual cost of this plan is four per cent less than the reference price for an average household in your distribution zone. This is an estimate only, and your actual cost will depend on your usage.",
-      "start_sec": 54.3,
-      "end_sec": 73.6,
+      "start_sec": 60.32,
+      "end_sec": 79.03,
       "asr_confidence": 0.95
     },
     {
@@ -94,8 +94,8 @@
       "speaker": "customer",
       "speaker_name": "Aisha R.",
       "text": "Okay, got it.",
-      "start_sec": 74.3,
-      "end_sec": 75.5,
+      "start_sec": 79.73,
+      "end_sec": 81.83,
       "asr_confidence": 0.95
     },
     {
@@ -103,8 +103,8 @@
       "speaker": "agent",
       "speaker_name": "Daniel R.",
       "text": "A couple of quick questions first. Does anyone at the property rely on life support equipment, and do you hold a concession card?",
-      "start_sec": 76.2,
-      "end_sec": 84.7,
+      "start_sec": 82.53,
+      "end_sec": 91.72,
       "asr_confidence": 0.95
     },
     {
@@ -112,8 +112,8 @@
       "speaker": "customer",
       "speaker_name": "Aisha R.",
       "text": "No to both.",
-      "start_sec": 85.4,
-      "end_sec": 86.6,
+      "start_sec": 92.42,
+      "end_sec": 94.02,
       "asr_confidence": 0.95
     },
     {
@@ -121,8 +121,8 @@
       "speaker": "agent",
       "speaker_name": "Daniel R.",
       "text": "Let me pull the pricing up for you.",
-      "start_sec": 87.3,
-      "end_sec": 90.3,
+      "start_sec": 94.72,
+      "end_sec": 97.38,
       "asr_confidence": 0.95
     },
     {
@@ -130,8 +130,8 @@
       "speaker": "agent",
       "speaker_name": "Daniel R.",
       "text": "On the Saver Flex plan your usage rate is 27.9 cents per kilowatt hour including GST, and the daily supply charge is ninety-eight point four five cents a day.",
-      "start_sec": 91.1,
-      "end_sec": 101.8,
+      "start_sec": 98.18,
+      "end_sec": 109.29,
       "asr_confidence": 0.95
     },
     {
@@ -139,8 +139,8 @@
       "speaker": "customer",
       "speaker_name": "Aisha R.",
       "text": "That sounds reasonable.",
-      "start_sec": 102.5,
-      "end_sec": 103.7,
+      "start_sec": 109.99,
+      "end_sec": 112.15,
       "asr_confidence": 0.95
     },
     {
@@ -148,8 +148,8 @@
       "speaker": "agent",
       "speaker_name": "Daniel R.",
       "text": "The rate isn't locked, we'd give you written notice before any change and you could leave then with no exit fee. Are you happy for me to go ahead?",
-      "start_sec": 104.4,
-      "end_sec": 115.1,
+      "start_sec": 112.85,
+      "end_sec": 121.97,
       "asr_confidence": 0.95
     },
     {
@@ -157,8 +157,8 @@
       "speaker": "customer",
       "speaker_name": "Aisha R.",
       "text": "Yes, let's do it.",
-      "start_sec": 115.8,
-      "end_sec": 117.5,
+      "start_sec": 122.67,
+      "end_sec": 125.0,
       "asr_confidence": 0.95
     },
     {
@@ -166,8 +166,8 @@
       "speaker": "agent",
       "speaker_name": "Daniel R.",
       "text": "What's the best email for your welcome pack and contract? The cooling-off notice goes there too.",
-      "start_sec": 118.2,
-      "end_sec": 124.1,
+      "start_sec": 125.7,
+      "end_sec": 132.33,
       "asr_confidence": 0.95
     },
     {
@@ -175,8 +175,8 @@
       "speaker": "customer",
       "speaker_name": "Aisha R.",
       "text": "Use aisha dot rahman at gmail dot com.",
-      "start_sec": 124.8,
-      "end_sec": 128.1,
+      "start_sec": 133.03,
+      "end_sec": 136.48,
       "asr_confidence": 0.95
     },
     {
@@ -184,8 +184,8 @@
       "speaker": "agent",
       "speaker_name": "Daniel R.",
       "text": "Lovely, got it.",
-      "start_sec": 128.8,
-      "end_sec": 130.0,
+      "start_sec": 137.18,
+      "end_sec": 139.34,
       "asr_confidence": 0.95
     },
     {
@@ -193,8 +193,8 @@
       "speaker": "agent",
       "speaker_name": "Daniel R.",
       "text": "And just to confirm the NMI off your bill, I've got 6 1 0 2 0 5 5 6 6 7 7. Does that match?",
-      "start_sec": 130.7,
-      "end_sec": 140.0,
+      "start_sec": 140.04,
+      "end_sec": 149.56,
       "asr_confidence": 0.95
     },
     {
@@ -202,8 +202,8 @@
       "speaker": "customer",
       "speaker_name": "Aisha R.",
       "text": "Yes, that matches.",
-      "start_sec": 140.7,
-      "end_sec": 141.9,
+      "start_sec": 150.25,
+      "end_sec": 152.66,
       "asr_confidence": 0.95
     },
     {
@@ -211,8 +211,8 @@
       "speaker": "agent",
       "speaker_name": "Daniel R.",
       "text": "And this is electricity only, you're not bringing gas across?",
-      "start_sec": 142.6,
-      "end_sec": 146.3,
+      "start_sec": 153.36,
+      "end_sec": 158.05,
       "asr_confidence": 0.95
     },
     {
@@ -220,8 +220,8 @@
       "speaker": "customer",
       "speaker_name": "Aisha R.",
       "text": "Electricity only.",
-      "start_sec": 147.0,
-      "end_sec": 148.2,
+      "start_sec": 158.75,
+      "end_sec": 160.81,
       "asr_confidence": 0.95
     },
     {
@@ -229,8 +229,8 @@
       "speaker": "agent",
       "speaker_name": "Daniel R.",
       "text": "That's everything. You'll get the welcome pack by email within one business day and your ten business day cooling-off period starts when it lands.",
-      "start_sec": 148.9,
-      "end_sec": 157.8,
+      "start_sec": 161.51,
+      "end_sec": 170.56,
       "asr_confidence": 0.95
     },
     {
@@ -238,8 +238,8 @@
       "speaker": "customer",
       "speaker_name": "Aisha R.",
       "text": "Thanks Daniel, bye.",
-      "start_sec": 158.5,
-      "end_sec": 159.7,
+      "start_sec": 171.26,
+      "end_sec": 173.72,
       "asr_confidence": 0.95
     }
   ]

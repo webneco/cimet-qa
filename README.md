@@ -1,4 +1,17 @@
 # CIMET QA Gate
+Score the sale before it ships.
+
+    python run.py          # macOS / Linux: python3 run.py
+    open http://127.0.0.1:8787
+
+Python 3.10+ only. No install, no API keys: without a key, facts are checked by the
+built-in extractor instead of Claude, and the app says so on screen.
+
+Try: 3613790 HELD · 3613791 SUBMITTED · 3613792 QA · 3613793 QA (CIMET's NBN call)
+
+Full walkthrough: [For evaluators](#for-evaluators-running-in-60-seconds-no-api-keys-needed)
+
+---
 
 Scores a sales call against its retailer's compliance checklist **before** the lead
 is submitted to the CRM, and decides one of three things: **HELD**, **QA**, or
@@ -8,6 +21,78 @@ NBN-QA pack for internet sales (lead 3613793, the official CIMET artefact).
 Local, one command, no Docker, no auth, no database. External services are optional:
 the Anthropic API for Type B extraction, and ElevenLabs or Deepgram for turning dialler
 recordings into transcripts. It runs end to end without any key.
+
+---
+
+## For evaluators: running in 60 seconds, no API keys needed
+
+You need **Python 3.10 or newer**, and nothing else: no `pip install`, no API keys, no
+`.env` file, no Docker, no database.
+
+```bash
+git clone <this-repo-url>
+cd cimet-qa
+python run.py              # macOS / Linux: python3 run.py
+```
+
+Your browser opens <http://127.0.0.1:8787> on lead **3613790**, the brief's worked
+example, already scored **HELD**. If the browser doesn't open, paste that address in.
+
+**What works without keys:** everything you need to judge it. Every check still runs,
+the gate still decides, evidence and timestamps are all there, and the synthetic calls
+play their audio. Two things change, and the app says so both at startup and in the
+top bar:
+
+| Part | With no keys | Needs a key for |
+|---|---|---|
+| Type A (script wording) | runs as normal - it never uses an LLM | - |
+| Type B (facts: rate, email, price...) | the built-in deterministic extractor | Claude extraction (`ANTHROPIC_API_KEY`) |
+| Type C (dead air, talk-over) | runs as normal | - |
+| Gate, evidence, overrides, audit JSON | run as normal | - |
+| Audio playback for synthetic calls | works (recordings are in the repo) | - |
+| Dialler webhook (new recordings) | switched off, answers 503 | speech-to-text (`ELEVENLABS_API_KEY` or `DEEPGRAM_API_KEY`) |
+
+The terminal shows this at startup:
+
+```
+  CIMET QA Gate
+  http://127.0.0.1:8787/
+  Type A: deterministic script-span matcher (no LLM)
+  Type B: deterministic-fallback  (LLM disabled (no ANTHROPIC_API_KEY, or CIMET_LLM=off))
+  ASR:    off  (no ELEVENLABS_API_KEY or DEEPGRAM_API_KEY configured)
+```
+
+**A two-minute tour:**
+
+1. **3613790** opens HELD. The two red cards show *said vs expected*: rate 28.6 against
+   31.9, and email gmail against gmial. Click **14:02** to jump to that line.
+2. Click a card to see every piece of evidence behind it; **Override** asks for a reason.
+3. Open the lead picker (top left) and choose **3613792**: crosstalk and `[inaudible]`
+   give **QA**, not HELD, because silence is never counted as a fail.
+4. Choose **3613802**: a synthetic call with audio. Click **01:38** to hear the
+   wrong rate being quoted.
+5. Choose **3613793**: CIMET's NBN artefact. Open *Total minimum cost* to see $42.90
+   said against $317 on the order screen.
+6. Click **Accuracy** (top right), then **Run evaluation**: the 12 hand-labelled calls,
+   0 critical false passes.
+
+**Check it from the terminal** (also offline, no keys):
+
+```bash
+python run.py --selftest          # 93 behavioural assertions, ~1 second
+python run.py --eval              # agreement with the 12 hand-labelled calls
+python run.py --score 3613790     # score one lead and print the verdict
+```
+
+**If something goes wrong:**
+
+- *`python` not found, or it says Python 2:* use `python3`, or install Python 3.10+.
+- *Port 8787 already in use:* `python run.py --port 8790`, then open
+  <http://127.0.0.1:8790>. The app refuses to start a second copy on a busy port and says so.
+- *The browser didn't open:* go to <http://127.0.0.1:8787> yourself.
+- *The lead dots show hollow rings for a few seconds:* on first start, leads that
+  have never been scored are scored once in the background; the dots fill in by themselves.
+- *Accuracy says there's no report yet:* press **Run evaluation**. It takes a second.
 
 ---
 
@@ -304,6 +389,7 @@ python run.py --eval                        # agreement on reference transcripts
 python tools/make_audio.py --dry-run        # TTS character count (~25k for all 12)
 python tools/make_audio.py                  # ElevenLabs -> data/synth/audio/<lead>.wav
 python tools/make_audio.py --engine windows # free: Windows built-in voices, no quota
+python tools/make_audio.py --sync-only      # copy the audio's real line timings into the transcripts
 python run.py                               # start the app, then in another terminal:
 python tools/dialler_sim.py --all --eval    # push every call through the webhook, score the ASR output
 ```
