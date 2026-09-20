@@ -180,6 +180,7 @@ def make_handler(store: Store, pipeline: Pipeline, settings, preloader: _Preload
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Robots-Tag", "noindex, nofollow, noarchive")
             for key, value in (extra or {}).items():
                 self.send_header(key, value)
             self.end_headers()
@@ -223,6 +224,8 @@ def make_handler(store: Store, pipeline: Pipeline, settings, preloader: _Preload
                     return self._static("index.html")
                 if route.startswith("/static/"):
                     return self._static(route[len("/static/"):])
+                if route == "/robots.txt":
+                    return self._send(200, b"User-agent: *\nDisallow: /\n", "text/plain; charset=utf-8")
                 if route == "/api/health":
                     return self._json({
                         "ok": True,
